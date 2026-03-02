@@ -1,0 +1,12 @@
+.env
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+
+Simovative_University_News_Digest_System_Spec_v1.md
