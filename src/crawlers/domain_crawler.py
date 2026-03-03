@@ -1,8 +1,8 @@
 """HTML domain crawler for university news pages.
 
-Uses three-tier article discovery:
-1. Heuristic strategies (HTML5 tags, CSS classes, URL patterns)
-2. LLM fallback when heuristics find too few articles
+Uses two-tier article discovery:
+1. Embedding-based link classifier (sentence-transformers) with heuristic bonuses
+2. OpenAI LLM fallback when classifier finds zero articles
 3. Readability-based content extraction for clean article text
 """
 
@@ -32,7 +32,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logging.getLogger("readability.readability").setLevel(logging.WARNING)
 
-# Common German date patterns
+# Common German date patterns (used by article page date extraction)
 _DATE_PATTERNS = [
     r"\d{4}-\d{2}-\d{2}",
     r"\d{2}\.\d{2}\.\d{4}",
@@ -45,21 +45,8 @@ _DATE_PATTERNS = [
 
 # --- Configuration ---
 _READABILITY_MIN_CHARS = 200
-_LLM_FALLBACK_THRESHOLD = 3
 _LLM_FALLBACK_ENABLED = os.getenv("DOMAIN_CRAWLER_LLM_FALLBACK", "true").lower() == "true"
 _LLM_MAX_HTML_CHARS = 8000
-
-
-def _extract_nearby_date(element) -> str | None:
-    """Extract date from nearby text using common German/ISO patterns."""
-    if not element:
-        return None
-    text = element.get_text()
-    for pattern in _DATE_PATTERNS:
-        match = re.search(pattern, text)
-        if match:
-            return match.group(0)
-    return None
 
 
 def _extract_date_from_article_html(article_soup: BeautifulSoup) -> str | None:
@@ -284,63 +271,24 @@ def crawl_domain(domain_url: str, max_articles: int = 20, days_back: int = 0) ->
             parsed_base = urlparse(domain_url)
             base_domain = f"{parsed_base.scheme}://{parsed_base.netloc}"
 
-            discovered: list[dict] = []
-            seen_urls: set[str] = set()
+            # --- Primary: Embedding-based link classifier ---
+            from src.crawlers.link_classifier import LinkClassifier
+            from config import LINK_DISCOVERY_THRESHOLD
+            classifier = LinkClassifier.get_instance()
+            discovered = classifier.classify_page_links(
+                soup, domain_url, max_articles=max_articles,
+                threshold=LINK_DISCOVERY_THRESHOLD,
+            )
 
-            def _add(url: str, title: str, date_str: str | None) -> None:
-                if url in seen_urls or len(discovered) >= max_articles:
-                    return
-                if not title or len(title) < 5:
-                    return
-                if not url.startswith(("http://", "https://")):
-                    return
-                seen_urls.add(url)
-                discovered.append({"url": url, "title": title, "date": date_str})
-
-            # Strategy 1: <article> tags
-            for article in soup.find_all("article"):
-                link = article.find("a", href=True)
-                if link:
-                    full_url = urljoin(base_domain, link["href"].strip())
-                    _add(full_url, link.get_text(strip=True), _extract_nearby_date(article))
-
-            # Strategy 2: Common news listing CSS classes
-            for container in soup.find_all(
-                ["div", "li", "section"],
-                class_=re.compile(
-                    r"(?i)(news|article|post|blog|entry|item|teaser|beitrag|meldung|aktuell)"
-                ),
-            ):
-                link = container.find("a", href=True)
-                if link:
-                    full_url = urljoin(base_domain, link["href"].strip())
-                    _add(full_url, link.get_text(strip=True), _extract_nearby_date(container))
-
-            # Strategy 3: URL path patterns
-            if len(discovered) < max_articles:
-                news_patterns = [
-                    "/news/", "/blog/", "/aktuelles/", "/presse/",
-                    "/meldung/", "/beitrag/", "/artikel/", "/publikation/",
-                ]
-                for a_tag in soup.find_all("a", href=True):
-                    href = a_tag["href"].strip()
-                    if not any(pat in href.lower() for pat in news_patterns):
-                        continue
-                    full_url = urljoin(base_domain, href)
-                    parent = a_tag.find_parent(["div", "article", "li", "section"])
-                    _add(full_url, a_tag.get_text(strip=True),
-                         _extract_nearby_date(parent) if parent else None)
-
-            # Strategy 4: LLM fallback when heuristics found too few
-            if len(discovered) < _LLM_FALLBACK_THRESHOLD and _LLM_FALLBACK_ENABLED:
+            # --- Fallback: OpenAI LLM when classifier found nothing ---
+            if not discovered and _LLM_FALLBACK_ENABLED:
                 logger.info(
-                    "Heuristics found only %d links on %s — triggering LLM fallback",
-                    len(discovered), domain_url,
+                    "Link classifier found 0 articles on %s — triggering LLM fallback",
+                    domain_url,
                 )
                 link_snippets = _extract_link_snippets(soup, base_domain, _LLM_MAX_HTML_CHARS)
                 if link_snippets:
-                    for item in _llm_discover_links(link_snippets, domain_url):
-                        _add(item["url"], item["title"], item["date"])
+                    discovered = _llm_discover_links(link_snippets, domain_url)
 
             # Date filter: discard items that are provably too old
             if days_back > 0:

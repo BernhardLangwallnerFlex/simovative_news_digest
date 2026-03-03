@@ -1,0 +1,151 @@
+{
+  "description": "URL-Patterns für Nachrichtenartikel von Hochschul-nahen Organisationen und Plattformen. {slug} = URL-freundlicher Titel, {YYYY} = Jahr, {MM} = Monat, {DD} = Tag, {id} = numerische ID, {monat} = deutscher Monatsname",
+  "patterns": {
+    "https://www.his.de/aktuelles": {
+      "organisation": "HIS eG (Hochschul-Informations-System)",
+      "article_url_pattern": "https://www.his.de/aktuelles/{slug}",
+      "example": "https://www.his.de/aktuelles/zukunftstag-2025",
+      "cms": "Unbekannt"
+    },
+    "https://www.his.de/news/themen": {
+      "organisation": "HIS eG – News/Themen",
+      "article_url_pattern": "https://www.his.de/news/detailseite/{slug}",
+      "example": "https://www.his.de/news/detailseite/release-202512-neue-moeglichkeiten-fuer-ihre-hochschule",
+      "cms": "Unbekannt"
+    },
+    "https://www.datenlotsen.de/de/neuigkeiten.html": {
+      "organisation": "Datenlotsen (CampusNet)",
+      "article_url_pattern": "https://www.datenlotsen.de/de/neuigkeiten/{slug}.html",
+      "example": "https://www.datenlotsen.de/de/neuigkeiten/learntec-2025-wir-sind-dabei.html",
+      "cms": "Custom CMS"
+    },
+    "https://blog.his-he.de/": {
+      "organisation": "HIS-HE (Institut für Hochschulentwicklung)",
+      "article_url_pattern": "https://blog.his-he.de/{YYYY}/{MM}/{DD}/{slug}/",
+      "example": "https://blog.his-he.de/2025/05/06/his-he-auf-dem-uff-2025/",
+      "cms": "WordPress"
+    },
+    "https://blog.fuxam.com/": {
+      "organisation": "fuxam",
+      "article_url_pattern": "https://blog.fuxam.com/{slug}/",
+      "example": "nicht ermittelbar – Blog nicht in Suchmaschinen indexiert",
+      "note": "Blog ist nicht indexiert oder hat keine aktuellen Inhalte"
+    },
+    "https://www.campusonline.tugraz.at/aktuelles": {
+      "organisation": "CAMPUSonline (TU Graz)",
+      "article_url_pattern": "https://www.campusonline.tugraz.at/aktuelles/{slug}",
+      "example": "nicht eindeutig ermittelbar – Aktuelles-Seite zeigt hauptsächlich Veranstaltungen",
+      "note": "Wenige individuelle Nachrichtenartikel, hauptsächlich Termine zu Nutzergruppentreffen"
+    },
+    "https://www.classe365.com/blog/": {
+      "organisation": "Classe365",
+      "article_url_pattern": "https://www.classe365.com/blog/{slug}/",
+      "example": "https://www.classe365.com/blog/the-future-of-digital-learning-with-learning-management-system-in-education/",
+      "cms": "WordPress"
+    },
+    "https://www.uni-kanzler.de/aktuelles/news": {
+      "organisation": "Kanzlerinnen und Kanzler der Universitäten Deutschlands",
+      "article_url_pattern": "https://www.uni-kanzler.de/aktuelles/{slug}",
+      "example": "https://www.uni-kanzler.de/aktuelles/kanzlerjahrestagung",
+      "note": "Auch Publikationen unter /publikationen-und-presse/2020-2029",
+      "cms": "TYPO3"
+    },
+    "https://hochschulforumdigitalisierung.de/news/": {
+      "organisation": "Hochschulforum Digitalisierung (HFD) – News",
+      "article_url_pattern": "https://hochschulforumdigitalisierung.de/news/{slug}/",
+      "example": "https://hochschulforumdigitalisierung.de/news/community-call-new-work/",
+      "cms": "WordPress"
+    },
+    "https://hochschulforumdigitalisierung.de/blog/": {
+      "organisation": "Hochschulforum Digitalisierung (HFD) – Blog",
+      "article_url_pattern": "https://hochschulforumdigitalisierung.de/{slug}/",
+      "example": "https://hochschulforumdigitalisierung.de/der-wandel-den-wir-gestalten-ein-jahresrueckblick-aus-dem-hochschulforum-digitalisierung/",
+      "note": "Blog-Artikel liegen direkt auf Root-Ebene, nicht unter /blog/",
+      "cms": "WordPress"
+    },
+    "https://www.stifterverband.org/pressemitteilungen": {
+      "organisation": "Stifterverband – Pressemitteilungen",
+      "article_url_pattern": "https://www.stifterverband.org/pressemitteilungen/{YYYY}_{MM}_{DD}_{slug}",
+      "example": "https://www.stifterverband.org/pressemitteilungen/2025_11_07_gipfel_fuer_forschung_und_innovation",
+      "note": "Datumformat: YYYY_MM_DD gefolgt von Slug mit Underscores",
+      "cms": "Drupal"
+    },
+    "https://www.stifterverband.org/insights": {
+      "organisation": "Stifterverband – Insights",
+      "article_url_pattern": "https://www.stifterverband.org/{slug}",
+      "example": "https://www.stifterverband.org/fue-insights-2025",
+      "note": "Insights-Artikel liegen direkt auf Root-Ebene",
+      "cms": "Drupal"
+    },
+    "https://www.hrk.de/presse/pressemitteilungen/": {
+      "organisation": "Hochschulrektorenkonferenz (HRK)",
+      "article_url_pattern": "https://www.hrk.de/presse/pressemitteilungen/pressemitteilung/meldung/{slug}/",
+      "example": "https://www.hrk.de/presse/pressemitteilungen/pressemitteilung/meldung/freie-studienplaetze-im-sommersemester-2025-hrk-studienplatzboerse-startet-5099/",
+      "note": "Slug enthält häufig numerische ID am Ende (z.B. -5099)",
+      "cms": "TYPO3"
+    },
+    "https://www.che.de/aktuelles/": {
+      "organisation": "CHE Centrum für Hochschulentwicklung",
+      "article_url_pattern": "https://www.che.de/{slug}/",
+      "example": "https://www.che.de/aktuelles/",
+      "note": "Artikel-URLs nicht eindeutig über Websuche ermittelbar; DatenCHECK-Artikel unter https://hochschuldaten.che.de/{slug}/",
+      "datencheck_pattern": "https://hochschuldaten.che.de/{slug}/",
+      "datencheck_example": "https://hochschuldaten.che.de/kuenstliche-intelligenz-im-studium-die-sicht-von-studierenden-im-wintersemester-2024-25/",
+      "cms": "WordPress"
+    },
+    "https://www.bertelsmann-stiftung.de/en/home/news": {
+      "organisation": "Bertelsmann Stiftung",
+      "article_url_pattern": "https://www.bertelsmann-stiftung.de/en/topics/latest-news/{YYYY}/{monat}/{slug}",
+      "example": "https://www.bertelsmann-stiftung.de/en/topics/latest-news/2025/august/providing-a-future-for-the-next-generation",
+      "note": "{monat} = englischer Monatsname in Kleinbuchstaben; manche Artikel ohne Monat direkt unter /YYYY/",
+      "cms": "TYPO3"
+    },
+    "https://negz.org/neuigkeiten-aus-dem-negz/": {
+      "organisation": "NEGZ – Neuigkeiten",
+      "article_url_pattern": "https://negz.org/{slug}/",
+      "example": "https://negz.org/negz-herbsttagung-2/",
+      "note": "Artikel liegen direkt auf Root-Ebene",
+      "cms": "WordPress"
+    },
+    "https://negz.org/presseschau/": {
+      "organisation": "NEGZ – Presseschau",
+      "article_url_pattern": "https://negz.org/presseschau/",
+      "example": "https://negz.org/presseschau/",
+      "note": "Presseschau ist eine einzelne Seite mit eingebetteten Beiträgen, keine individuellen Artikel-URLs"
+    },
+    "https://digitalverbund.bayern/aktuelles/": {
+      "organisation": "Digitalverbund Bayern im Hochschulbereich",
+      "article_url_pattern": "https://digitalverbund.bayern/{YYYY}/{MM}/{DD}/{slug}/",
+      "example": "https://digitalverbund.bayern/2025/04/07/positionspapier-zur-digitalen-souveraenitaet-veroeffentlicht/",
+      "cms": "WordPress"
+    },
+    "https://private-hochschulen.net/aktuelles": {
+      "organisation": "Verband der Privaten Hochschulen (VPH)",
+      "article_url_pattern": "https://private-hochschulen.net/aktuelles/{slug}-{id}",
+      "example": "https://private-hochschulen.net/aktuelles/kolping-hochschule-tritt-dem-verband-der-privaten-hochschulen-vph-bei-489",
+      "note": "Slug gefolgt von numerischer ID",
+      "cms": "Custom CMS"
+    },
+    "https://www.stmwk.bayern.de/pressemitteilungen.html": {
+      "organisation": "Bayerisches Staatsministerium für Wissenschaft und Kunst (StMWK)",
+      "article_url_pattern": "https://www.stmwk.bayern.de/pressemitteilung/{id}/{slug}.html",
+      "example": "https://www.stmwk.bayern.de/pressemitteilung/12956/nr-100-vom-04-11-2025.html",
+      "note": "Numerische ID gefolgt von Slug; Slug enthält oft Nummerierung (nr-XXX-vom-DD-MM-YYYY)",
+      "cms": "TYPO3"
+    },
+    "https://www.it-planungsrat.de/aktuelles": {
+      "organisation": "IT-Planungsrat",
+      "article_url_pattern": "https://www.it-planungsrat.de/aktuelles/details/{slug}",
+      "example": "https://www.it-planungsrat.de/aktuelles/details/it-planungsrat-beschliesst-wichtige-digitalvorhaben",
+      "cms": "TYPO3"
+    },
+    "https://www.mmkh.de/aktuelles/neuigkeiten": {
+      "organisation": "MMKH (Multimedia Kontor Hamburg)",
+      "article_url_pattern_news": "https://www.mmkh.de/aktuelles/neuigkeiten/{YYYY}-{MM}-{DD}-{slug}",
+      "article_url_pattern_events": "https://www.mmkh.de/aktuelles/veranstaltungshinweise/{YYYY}-{MM}-{DD}-{slug}",
+      "example_news": "https://www.mmkh.de/aktuelles/neuigkeiten/2025-07-24-ki-kompetenz-an-hochschulen-betaversion-des-neuen-offenen-kurses-ist-online",
+      "example_events": "https://www.mmkh.de/aktuelles/veranstaltungshinweise/2025-11-26-edunext25-digitalisierung-und-ki-in-der-hochschullehre",
+      "cms": "TYPO3"
+    }
+  }
+}

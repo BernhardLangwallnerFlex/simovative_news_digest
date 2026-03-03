@@ -19,12 +19,9 @@ MANDATORY_DOMAINS = [
     "https://negz.org/presseschau/", 
     "https://digitalverbund.bayern/aktuelles/", 
     "https://private-hochschulen.net/aktuelles", 
-    "https://www.mmkh.de/aktuelles.html", 
     "https://www.stmwk.bayern.de/pressemitteilungen.html", 
     "https://www.it-planungsrat.de/aktuelles",
     "https://www.mmkh.de/aktuelles/neuigkeiten",
-    "https://www.stmwk.bayern.de/pressemitteilungen.html",
-    "https://www.it-planungsrat.de/aktuelles",
     ]
 
 UNIVERSITY_NEWS_URLS = [
@@ -130,6 +127,11 @@ RSS_FEEDS = [
 
 ARTICLES_PER_DOMAIN = 20
 
+# Link classifier settings (sentence-transformers based)
+LINK_DISCOVERY_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+LINK_DISCOVERY_THRESHOLD = 0.10
+LINK_CLASSIFIER_ENABLED = True
+
 
 # Comma-separated list of recipient email addresses (set in .env)
 import os as _os
@@ -189,7 +191,7 @@ NEWSAPI_QUERIES = [
     # -------------------------------------------------
 
     '(neuer Präsident OR neue Präsidentin) AND (Hochschule OR Universität)',
-    '(Rektor OR Rektorin) AND (gewählt OR Amtsantritt)',
+    '(Rektor OR Rektorin) AND (gewählt OR Amtsantritt OR tritt)',
     '(Kanzler OR Kanzlerin) AND Hochschule AND (ernannt OR Amtsantritt)',
     '(CIO OR "Chief Information Officer") AND Hochschule',
     '("IT-Leiter" OR "IT-Leitung") AND Hochschule',

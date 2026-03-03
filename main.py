@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from config import RSS_FEEDS, MANDATORY_DOMAINS, ARTICLES_PER_DOMAIN, NEWSAPI_QUERIES, UNIVERSITY_NEWS_URLS, EMAIL_RECIPIENTS
-from src.crawlers.domain_crawler import crawl_domain
+from config import RSS_FEEDS, MANDATORY_DOMAINS, ARTICLES_PER_DOMAIN, NEWSAPI_QUERIES, UNIVERSITY_NEWS_URLS, EMAIL_RECIPIENTS, LINK_CLASSIFIER_ENABLED, LINK_DISCOVERY_MODEL
+from src.crawlers.university_domain_crawler import crawl_all_university_domains
 from src.delivery.email_sender import send_digest_email
 from src.crawlers.newsapi_crawler import fetch_newsapi
 from src.crawlers.rss_crawler import parse_rss_feeds
@@ -33,6 +33,12 @@ def main():
     run_id = datetime.utcnow().isoformat() + "Z"
     logger = setup_logging(run_date)
     logger.info("=== Run started | run_id=%s | date=%s ===", run_id, run_date)
+
+    # Warm up link classifier model (loads once, reused across all domains)
+    if LINK_CLASSIFIER_ENABLED:
+        from src.crawlers.link_classifier import LinkClassifier
+        LinkClassifier.get_instance(model_name=LINK_DISCOVERY_MODEL)
+        logger.info("Link classifier model loaded: %s", LINK_DISCOVERY_MODEL)
 
     end_date = run_date
     start_date = (datetime.strptime(run_date, "%Y-%m-%d") - timedelta(days=DAYS_BACK)).strftime("%Y-%m-%d")
@@ -61,29 +67,33 @@ def main():
         stats["errors"].append(f"RSS: {e}")
         rss_raw = []
 
-     # ── Step 1b: Domain Scraping (HTML) ─────────────────────────────
-    logger.info("Step 1b: Crawling %d university domains", len(MANDATORY_DOMAINS))
+    # ── Step 1b: Domain Scraping (HTML) ─────────────────────────────
+    logger.info("Step 1b: Crawling %d university domains (pattern-based)", len(UNIVERSITY_NEWS_URLS))
     domain_raw = []
-    for domain_url in UNIVERSITY_NEWS_URLS:
-        try:
-            articles = crawl_domain(domain_url, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK)
-            domain_raw.extend(articles)
-            logger.info("Domain %s: %d articles", domain_url, len(articles))
-        except Exception as e:
-            logger.error("Domain crawl failed for %s: %s", domain_url, e)
-            stats["errors"].append(f"Domain {domain_url}: {e}")
+    try:
+        uni_articles = crawl_all_university_domains(
+            UNIVERSITY_NEWS_URLS, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK
+        )
+        domain_raw.extend(uni_articles)
+        logger.info("University domains: %d articles collected", len(uni_articles))
+    except Exception as e:
+        logger.error("University domain crawl failed: %s", e)
+        stats["errors"].append(f"University domains: {e}")
     stats["domain_articles"] = len(domain_raw)
     save_raw(domain_raw, "university_articles", run_date)
-    for domain_url in MANDATORY_DOMAINS:
-        try:
-            articles = crawl_domain(domain_url, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK)
-            domain_raw.extend(articles)
-            logger.info("Domain %s: %d articles", domain_url, len(articles))
-        except Exception as e:
-            logger.error("Domain crawl failed for %s: %s", domain_url, e)
-            stats["errors"].append(f"Domain {domain_url}: {e}")
+
+    logger.info("Step 1b: Crawling %d mandatory domains (pattern-based)", len(MANDATORY_DOMAINS))
+    try:
+        mandatory_articles = crawl_all_university_domains(
+            MANDATORY_DOMAINS, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK
+        )
+        domain_raw.extend(mandatory_articles)
+        logger.info("Mandatory domains: %d articles collected", len(mandatory_articles))
+    except Exception as e:
+        logger.error("Mandatory domain crawl failed: %s", e)
+        stats["errors"].append(f"Mandatory domains: {e}")
     stats["domain_articles"] = len(domain_raw)
-    save_raw(domain_raw, "university_articles", run_date) 
+    save_raw(domain_raw, "domain_articles", run_date)
 
     # ── Step 1c: NewsAPI ─────────────────────────────────────────────
     logger.info("Step 1c: Fetching NewsAPI (%d queries)", len(NEWSAPI_QUERIES))
