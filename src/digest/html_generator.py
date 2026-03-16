@@ -9,6 +9,17 @@ logger = logging.getLogger(__name__)
 
 EXCLUDED_CATEGORIES = {"Research News", "Irrelevant"}
 
+
+def _render_also_reported(article: dict) -> str:
+    """Render 'Auch berichtet von' line if the article has merged duplicates."""
+    also = article.get("digest", {}).get("also_reported_by", [])
+    if not also:
+        return ""
+    links = ", ".join(
+        f'<a href="{escape(s["url"])}">{escape(s["name"])}</a>' for s in also
+    )
+    return f'          <div class="also-reported">Auch berichtet von: {links}</div>\n'
+
 # Fixed display order matching the spec taxonomy
 CATEGORY_ORDER = [
     "Leadership & Governance",
@@ -119,7 +130,7 @@ def generate_html_digest(articles: list[dict], run_date: str) -> str:
           <div class="article-meta">{escape(universities or source['name'])} | {escape(content.get('published_at') or 'unknown')} | {bucket}</div>
           <div class="signal-summary">{escape(analysis.get('signal_summary') or '')}</div>
           <div class="sales-relevance">{escape(analysis.get('sales_relevance') or '')}</div>
-        </div>""")
+{_render_also_reported(a)}        </div>""")
 
         sections_html.append(f"""\
     <div class="category-section">
@@ -155,6 +166,9 @@ def generate_html_digest(articles: list[dict], run_date: str) -> str:
     .article-meta {{ color: #666; font-size: 0.85em; margin: 4px 0 8px 0; }}
     .signal-summary {{ margin: 6px 0; }}
     .sales-relevance {{ color: #555; font-style: italic; font-size: 0.9em; }}
+    .also-reported {{ color: #888; font-size: 0.85em; margin-top: 6px; font-style: italic; }}
+    .also-reported a {{ color: #4a90d9; text-decoration: none; }}
+    .also-reported a:hover {{ text-decoration: underline; }}
   </style>
 </head>
 <body>

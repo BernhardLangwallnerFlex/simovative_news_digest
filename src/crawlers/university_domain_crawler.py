@@ -13,6 +13,7 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
+from config import LINK_CLASSIFIER_ENABLED, LINK_DISCOVERY_THRESHOLD
 from src.crawlers.domain_crawler import (
     _extract_article_text,
     _extract_date_from_article_html,
@@ -20,6 +21,8 @@ from src.crawlers.domain_crawler import (
 )
 from src.processing.normalizer import _parse_date
 from src.utils.scraping_helpers import dismiss_cookies
+
+_MAX_PATTERN_MATCHES = 50  # Safety valve: fall back to classifier if patterns are too broad
 
 logger = logging.getLogger(__name__)
 
@@ -211,14 +214,41 @@ def crawl_university_domain(
 
         # --- Find article links via pattern matching ---
         discovered = _find_matching_links(soup, domain_url, patterns)
+        discovery_method = "pattern"
+
+        # Safety valve: if patterns are too broad, fall back to classifier
+        if len(discovered) > _MAX_PATTERN_MATCHES:
+            logger.warning(
+                "Pattern too broad: %d matches on %s — falling back to classifier",
+                len(discovered), domain_url,
+            )
+            discovered = []
+
+        # Fallback: use LinkClassifier when pattern matching yields nothing
+        if not discovered and LINK_CLASSIFIER_ENABLED:
+            from src.crawlers.link_classifier import LinkClassifier
+            classifier = LinkClassifier.get_instance()
+            fallback_results = classifier.classify_page_links(
+                soup, domain_url,
+                max_articles=max_articles,
+                threshold=LINK_DISCOVERY_THRESHOLD,
+            )
+            if fallback_results:
+                discovered = [{"url": r["url"], "title": r["title"]} for r in fallback_results]
+                discovery_method = "classifier_fallback"
+                logger.info(
+                    "LinkClassifier fallback found %d articles on %s",
+                    len(discovered), domain_url,
+                )
 
         if not discovered:
-            logger.info("No article links matched patterns on %s", domain_url)
+            logger.info("No article links found on %s (patterns + classifier)", domain_url)
             page.close()
             return []
 
         logger.info(
-            "Pattern matching found %d article URLs on %s", len(discovered), domain_url
+            "%s discovery found %d article URLs on %s",
+            discovery_method, len(discovered), domain_url,
         )
 
         # Cap at max_articles
@@ -259,6 +289,7 @@ def crawl_university_domain(
                     "source_type": "university_news",
                     "source_name": parsed_base.netloc,
                     "source_domain": domain_url,
+                    "discovery_method": discovery_method,
                     "crawl_error": None,
                 })
             except Exception as e:
@@ -271,6 +302,7 @@ def crawl_university_domain(
                     "source_type": "university_news",
                     "source_name": parsed_base.netloc,
                     "source_domain": domain_url,
+                    "discovery_method": discovery_method,
                     "crawl_error": str(e),
                 })
 
@@ -305,6 +337,7 @@ def crawl_all_university_domains(
         Combined list of raw article dicts from all domains.
     """
     all_articles: list[dict] = []
+    domain_stats: list[dict] = []
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
@@ -318,14 +351,32 @@ def crawl_all_university_domains(
                     browser=browser,
                 )
                 all_articles.extend(articles)
+                method = articles[0]["discovery_method"] if articles else "none"
+                domain_stats.append({
+                    "domain": domain_url,
+                    "articles": len(articles),
+                    "method": method,
+                })
             except Exception as e:
                 logger.error("University domain crawl failed for %s: %s", domain_url, e)
+                domain_stats.append({
+                    "domain": domain_url,
+                    "articles": 0,
+                    "method": "error",
+                })
 
         browser.close()
 
+    # --- Per-domain summary ---
+    working = sum(1 for s in domain_stats if s["articles"] > 0)
     logger.info(
-        "University domain crawling complete: %d articles from %d domains",
-        len(all_articles),
-        len(university_urls),
+        "University domain crawling complete: %d articles from %d/%d domains",
+        len(all_articles), working, len(university_urls),
     )
+    for s in domain_stats:
+        if s["articles"] == 0:
+            logger.warning(
+                "ZERO articles: %s (method=%s)", s["domain"], s["method"],
+            )
+
     return all_articles

@@ -15,8 +15,7 @@ MANDATORY_DOMAINS = [
     "https://www.hrk.de/presse/pressemitteilungen/", 
     "https://www.che.de/aktuelles/", 
     "https://www.bertelsmann-stiftung.de/en/home/news", 
-    "https://negz.org/neuigkeiten-aus-dem-negz/", 
-    "https://negz.org/presseschau/", 
+    "https://negz.org/neuigkeiten-aus-dem-negz/",
     "https://digitalverbund.bayern/aktuelles/", 
     "https://private-hochschulen.net/aktuelles", 
     "https://www.stmwk.bayern.de/pressemitteilungen.html", 
@@ -32,7 +31,7 @@ UNIVERSITY_NEWS_URLS = [
     "https://www.uni-augsburg.de/de/campusleben/neuigkeiten/", 
     "https://www.uni-bamberg.de/presse/pressemitteilungen/", 
     "https://www.hfk-bayreuth.de/veranstaltungen", 
-    "https://www.uni-bayreuth.de/en/press-releases", 
+    "https://www.uni-bayreuth.de/en/press-office/news",
     "https://www.hs-coburg.de/nachrichten/", 
     "https://www.th-deg.de/de/hochschule/aktuelles", 
     "https://www.ku.de/en/die-ku/kontakt/presse/media-information", 
@@ -51,8 +50,8 @@ UNIVERSITY_NEWS_URLS = [
     "https://www.sdi-muenchen.de/hochschule/ueber-uns/aktuelles-termine", 
     "https://www.ksh-muenchen.de/hochschule/aktuelles/news", 
     "https://www.munich-business-school.de/insights/en/home/", 
-    "https://www.tum.de/en/news-and-events/all-news", 
-    "https://www.lmu.de/de/newsroom/newsuebersicht/", 
+    "https://www.tum.de/en/news-and-events",
+    "https://www.lmu.de/de/newsroom/",
     "https://www.unibw.de/home/news", 
     "https://augustana.de/aktuelles/aktuelle-meldungen.html", 
     "https://www.hnu.de/hochschule/hochschul-news", 
@@ -71,9 +70,9 @@ UNIVERSITY_NEWS_URLS = [
     "https://www.thws.de/service/news-presse/", 
     "https://www.uni-wuerzburg.de/en/news-and-events/", 
     "https://ufu-muenchen.de/news-und-events/", 
-    "https://www.srh-university.de/de/news/", 
+    "https://www.srh-university.de/de/wilhelm-loehe-hochschule/",
     "https://theaterakademie.de/de/presse", 
-    "https://www.hfoed.bayern.de/zv/aktuelles/pressemitteilungen/index.html", 
+    "https://www.hfoed.bayern.de/zv/aktuelles/veranstaltungen/index.html",
     "https://www.euruni.edu/blog/", 
     "https://www.iu.de/news/en/", 
     "https://www.fom.de/de/presse/Presse.html", 
@@ -141,6 +140,10 @@ EMAIL_RECIPIENTS = [
     for addr in _os.getenv("EMAIL_RECIPIENTS", "").split(",")
     if addr.strip()
 ]
+
+# Article history (Azure Blob Storage)
+AZURE_HISTORY_CONTAINER = "news-digest-history"
+AZURE_HISTORY_BLOB = "article_history.json"
 
 
 NEWSAPI_QUERIES = [

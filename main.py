@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from config import RSS_FEEDS, MANDATORY_DOMAINS, ARTICLES_PER_DOMAIN, NEWSAPI_QUERIES, UNIVERSITY_NEWS_URLS, EMAIL_RECIPIENTS, LINK_CLASSIFIER_ENABLED, LINK_DISCOVERY_MODEL
+from config import RSS_FEEDS, MANDATORY_DOMAINS, ARTICLES_PER_DOMAIN, NEWSAPI_QUERIES, UNIVERSITY_NEWS_URLS, EMAIL_RECIPIENTS, LINK_CLASSIFIER_ENABLED, LINK_DISCOVERY_MODEL, AZURE_HISTORY_CONTAINER, AZURE_HISTORY_BLOB
 from src.crawlers.university_domain_crawler import crawl_all_university_domains
 from src.delivery.email_sender import send_digest_email
 from src.crawlers.newsapi_crawler import fetch_newsapi
@@ -16,6 +16,8 @@ from src.crawlers.rss_crawler import parse_rss_feeds
 from src.digest.html_generator import filter_for_digest, generate_html_digest
 from src.processing.classifier import classify_articles
 from src.processing.deduplicator import deduplicate
+from src.processing.near_dedup import deduplicate_near_duplicates
+from src.processing.history import load_history, filter_new_articles, update_history, save_history
 from src.processing.normalizer import normalize_articles
 from src.storage.local_store import (
     digest_path,
@@ -50,6 +52,8 @@ def main():
         "newsapi_articles": 0,
         "normalized": 0,
         "after_dedup": 0,
+        "after_history_filter": 0,
+        "history_skipped": 0,
         "classified": 0,
         "digest_included": 0,
         "errors": [],
@@ -122,16 +126,37 @@ def main():
     logger.info("After dedup: %d unique (removed %d)",
                 len(unique), len(normalized) - len(unique))
 
+    # ── Step 4.5: History Filter ─────────────────────────────────────
+    logger.info("Step 4.5: Loading article history from Azure")
+    history = load_history(AZURE_HISTORY_CONTAINER, AZURE_HISTORY_BLOB)
+    new_articles, history_skipped = filter_new_articles(unique, history)
+    stats["after_history_filter"] = len(new_articles)
+    stats["history_skipped"] = history_skipped
+    logger.info(
+        "History filter: %d new articles to classify, %d already seen",
+        len(new_articles), history_skipped,
+    )
+
     # ── Step 5: LLM Classification ───────────────────────────────────
-    logger.info("Step 5: Classifying %d articles", len(unique))
-    classified = classify_articles(unique)
+    logger.info("Step 5: Classifying %d articles", len(new_articles))
+    classified = classify_articles(new_articles)
     stats["classified"] = sum(1 for a in classified if a["analysis"]["processed"])
     save_processed(classified, "articles_classified.json", run_date)
-    logger.info("Classified: %d / %d articles", stats["classified"], len(unique))
+    logger.info("Classified: %d / %d articles", stats["classified"], len(new_articles))
+
+    # ── Step 5.5: Update and persist history ─────────────────────────
+    logger.info("Step 5.5: Updating article history")
+    history = update_history(history, new_articles, run_date)
+    save_history(history, AZURE_HISTORY_CONTAINER, AZURE_HISTORY_BLOB)
 
     # ── Step 6+7: Digest Generation ──────────────────────────────────
     logger.info("Step 6+7: Generating digest")
     digest_articles = filter_for_digest(classified)
+
+    # -- Step 6.5: Near-duplicate detection --
+    logger.info("Step 6.5: Near-duplicate detection (%d articles)", len(digest_articles))
+    digest_articles = deduplicate_near_duplicates(digest_articles)
+
     stats["digest_included"] = len(digest_articles)
 
     html = generate_html_digest(digest_articles, run_date=run_date)
