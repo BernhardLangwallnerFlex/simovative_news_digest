@@ -22,7 +22,8 @@ from src.crawlers.domain_crawler import (
 from src.processing.normalizer import _parse_date
 from src.utils.scraping_helpers import dismiss_cookies
 
-_MAX_PATTERN_MATCHES = 50  # Safety valve: fall back to classifier if patterns are too broad
+_WARN_PATTERN_MATCHES = 50   # Log warning when patterns match this many
+_HARD_PATTERN_LIMIT = 500    # Fall back to classifier only at this extreme
 
 logger = logging.getLogger(__name__)
 
@@ -34,24 +35,24 @@ _PATTERNS_FILES = [
 
 # Placeholder → regex mapping
 _PLACEHOLDER_REGEX = {
-    "{slug}": r"[a-z0-9][a-z0-9_-]+[a-z0-9]",
-    "{Slug}": r"[A-Za-z0-9][A-Za-z0-9_-]+[A-Za-z0-9]",
+    "{slug}": r"[a-zA-Z0-9](?:[a-zA-Z0-9._~%-]*[a-zA-Z0-9])?",
+    "{Slug}": r"[a-zA-Z0-9](?:[a-zA-Z0-9._~%-]*[a-zA-Z0-9])?",  # deprecated alias
     "{YYYY}": r"\d{4}",
     "{MM}": r"\d{1,2}",
     "{DD}": r"\d{1,2}",
     "{id}": r"\d+",
     "{YYYY-sem}": r"\d{4}-\d+",
-    "{monat}": r"[a-z]+",
+    "{monat}": r"[a-zäöü]+",
 }
 
 
-def _load_patterns() -> dict[str, list[re.Pattern]]:
+def _load_patterns() -> dict[str, dict]:
     """Load all pattern JSON files and compile URL patterns to regexes.
 
     Returns:
-        Dict mapping listing page URL → list of compiled regex patterns.
+        Dict mapping normalized listing page URL → {"patterns": list[re.Pattern], "excludes": list[re.Pattern]}.
     """
-    result: dict[str, list[re.Pattern]] = {}
+    result: dict[str, dict] = {}
 
     for patterns_file in _PATTERNS_FILES:
         if not patterns_file.exists():
@@ -78,8 +79,20 @@ def _load_patterns() -> dict[str, list[re.Pattern]]:
                 if regex:
                     compiled.append(re.compile(regex))
 
+            # Collect exclude patterns
+            exclude_compiled = []
+            for template in info.get("exclude_url_patterns", []):
+                regex = _template_to_regex(template)
+                if regex:
+                    exclude_compiled.append(re.compile(regex))
+
             if compiled:
-                result[listing_url] = compiled
+                # Normalize: store with and without trailing slash
+                normalized = listing_url.rstrip("/")
+                result[normalized] = {
+                    "patterns": compiled,
+                    "excludes": exclude_compiled,
+                }
 
         logger.info(
             "Loaded %d URL patterns from %s",
@@ -119,10 +132,10 @@ def _template_to_regex(template: str) -> str | None:
 
 
 # Module-level cache
-_cached_patterns: dict[str, list[re.Pattern]] | None = None
+_cached_patterns: dict[str, dict] | None = None
 
 
-def _get_patterns() -> dict[str, list[re.Pattern]]:
+def _get_patterns() -> dict[str, dict]:
     """Get cached patterns, loading from file on first call."""
     global _cached_patterns
     if _cached_patterns is None:
@@ -131,7 +144,10 @@ def _get_patterns() -> dict[str, list[re.Pattern]]:
 
 
 def _find_matching_links(
-    soup: BeautifulSoup, base_url: str, patterns: list[re.Pattern]
+    soup: BeautifulSoup,
+    base_url: str,
+    patterns: list[re.Pattern],
+    excludes: list[re.Pattern] | None = None,
 ) -> list[dict]:
     """Find all links on the page that match any of the article URL patterns.
 
@@ -140,6 +156,7 @@ def _find_matching_links(
     """
     seen: set[str] = set()
     matches: list[dict] = []
+    excludes = excludes or []
 
     for a in soup.find_all("a", href=True):
         href = a["href"].strip()
@@ -147,16 +164,29 @@ def _find_matching_links(
             continue
 
         full_url = urljoin(base_url, href)
-        # Normalize: remove trailing slash for matching, but keep original
-        url_for_match = full_url.rstrip("/")
+        # Also try without query string/fragment (some sites add cHash etc.)
+        url_no_query = full_url.split("?")[0].split("#")[0]
+        # Normalize: remove trailing slash for matching
+        full_stripped = full_url.rstrip("/")
+        no_query_stripped = url_no_query.rstrip("/")
 
-        if url_for_match in seen:
+        if no_query_stripped in seen:
             continue
 
+        # Check exclude patterns first
+        excluded = False
+        for ex in excludes:
+            if ex.match(full_url) or ex.match(no_query_stripped):
+                excluded = True
+                break
+        if excluded:
+            continue
+
+        # Try all variants: with query, without query, with/without trailing slash
+        candidates = {full_url, full_stripped, url_no_query, no_query_stripped, no_query_stripped + "/"}
         for pattern in patterns:
-            # Try both with and without trailing slash
-            if pattern.match(full_url) or pattern.match(url_for_match):
-                seen.add(url_for_match)
+            if any(pattern.match(c) for c in candidates):
+                seen.add(no_query_stripped)
                 title = a.get_text(strip=True) or ""
                 matches.append({"url": full_url, "title": title})
                 break
@@ -183,13 +213,17 @@ def crawl_university_domain(
         List of raw article dicts matching the standard crawler schema.
     """
     patterns_map = _get_patterns()
-    patterns = patterns_map.get(domain_url)
+    # Normalize lookup: strip trailing slash to match stored keys
+    entry = patterns_map.get(domain_url.rstrip("/"))
 
-    if not patterns:
+    if not entry:
         logger.warning(
             "No URL pattern found for %s — skipping", domain_url
         )
         return []
+
+    patterns = entry["patterns"]
+    excludes = entry.get("excludes", [])
 
     own_browser = browser is None
     try:
@@ -209,20 +243,37 @@ def crawl_university_domain(
             page.wait_for_timeout(3000)
 
         dismiss_cookies(page)
-        html = page.content()
-        soup = BeautifulSoup(html, "lxml")
 
-        # --- Find article links via pattern matching ---
-        discovered = _find_matching_links(soup, domain_url, patterns)
+        # --- Find article links via pattern matching (with scroll-retry for JS sites) ---
+        _MAX_RENDER_RETRIES = 2
+        discovered = []
+        for _attempt in range(1 + _MAX_RENDER_RETRIES):
+            html = page.content()
+            soup = BeautifulSoup(html, "lxml")
+            discovered = _find_matching_links(soup, domain_url, patterns, excludes)
+            if discovered or _attempt == _MAX_RENDER_RETRIES:
+                break
+            logger.info(
+                "No pattern matches on %s (attempt %d), scrolling and waiting...",
+                domain_url, _attempt + 1,
+            )
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            page.wait_for_timeout(3000)
+
         discovery_method = "pattern"
 
-        # Safety valve: if patterns are too broad, fall back to classifier
-        if len(discovered) > _MAX_PATTERN_MATCHES:
+        # Safety valve: warn on broad patterns, only fall back at extreme counts
+        if len(discovered) > _HARD_PATTERN_LIMIT:
             logger.warning(
-                "Pattern too broad: %d matches on %s — falling back to classifier",
+                "Pattern critically broad: %d matches on %s — falling back to classifier",
                 len(discovered), domain_url,
             )
             discovered = []
+        elif len(discovered) > _WARN_PATTERN_MATCHES:
+            logger.warning(
+                "Pattern broad: %d matches on %s — using first %d",
+                len(discovered), domain_url, max_articles,
+            )
 
         # Fallback: use LinkClassifier when pattern matching yields nothing
         if not discovered and LINK_CLASSIFIER_ENABLED:

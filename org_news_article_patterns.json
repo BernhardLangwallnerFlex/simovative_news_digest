@@ -9,8 +9,9 @@
     },
     "https://www.his.de/news/themen": {
       "organisation": "HIS eG – News/Themen",
-      "article_url_pattern": "https://www.his.de/news/detailseite/{slug}",
-      "example": "https://www.his.de/news/detailseite/release-202512-neue-moeglichkeiten-fuer-ihre-hochschule",
+      "article_url_pattern_detail": "https://www.his.de/news/detailseite/{slug}",
+      "article_url_pattern_themen": "https://www.his.de/news/themen/{slug}",
+      "example": "https://www.his.de/news/themen/verification-of-payee",
       "cms": "Unbekannt"
     },
     "https://www.datenlotsen.de/de/neuigkeiten.html": {
@@ -25,11 +26,11 @@
       "example": "https://blog.his-he.de/2025/05/06/his-he-auf-dem-uff-2025/",
       "cms": "WordPress"
     },
-    "https://blog.fuxam.com/": {
+    "https://fuxam.com/de/blog": {
       "organisation": "fuxam",
-      "article_url_pattern": "https://blog.fuxam.com/{slug}/",
-      "example": "nicht ermittelbar – Blog nicht in Suchmaschinen indexiert",
-      "note": "Blog ist nicht indexiert oder hat keine aktuellen Inhalte"
+      "article_url_pattern": "https://fuxam.com/de/blog/{slug}/",
+      "example": "https://fuxam.com/de/blog/chapters-group-steigt-bei-fuxam-ein/",
+      "cms": "Custom CMS"
     },
     "https://www.campusonline.tugraz.at/aktuelles": {
       "organisation": "CAMPUSonline (TU Graz)",
@@ -59,6 +60,13 @@
     "https://hochschulforumdigitalisierung.de/blog/": {
       "organisation": "Hochschulforum Digitalisierung (HFD) – Blog",
       "article_url_pattern": "https://hochschulforumdigitalisierung.de/{slug}/",
+      "exclude_url_patterns": [
+        "https://hochschulforumdigitalisierung.de/category/{slug}/",
+        "https://hochschulforumdigitalisierung.de/tag/{slug}/",
+        "https://hochschulforumdigitalisierung.de/author/{slug}/",
+        "https://hochschulforumdigitalisierung.de/page/{id}/",
+        "https://hochschulforumdigitalisierung.de/wp-content/{slug}/"
+      ],
       "example": "https://hochschulforumdigitalisierung.de/der-wandel-den-wir-gestalten-ein-jahresrueckblick-aus-dem-hochschulforum-digitalisierung/",
       "note": "Blog-Artikel liegen direkt auf Root-Ebene, nicht unter /blog/",
       "cms": "WordPress"
@@ -103,6 +111,13 @@
     "https://negz.org/neuigkeiten-aus-dem-negz/": {
       "organisation": "NEGZ – Neuigkeiten",
       "article_url_pattern": "https://negz.org/{slug}/",
+      "exclude_url_patterns": [
+        "https://negz.org/category/{slug}/",
+        "https://negz.org/tag/{slug}/",
+        "https://negz.org/author/{slug}/",
+        "https://negz.org/page/{id}/",
+        "https://negz.org/wp-content/{slug}/"
+      ],
       "example": "https://negz.org/negz-herbsttagung-2/",
       "note": "Artikel liegen direkt auf Root-Ebene",
       "cms": "WordPress"

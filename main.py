@@ -27,7 +27,7 @@ from src.storage.local_store import (
 )
 from src.utils.logging_setup import setup_logging
 
-DAYS_BACK = 4
+DAYS_BACK = 5
 
 
 def main():

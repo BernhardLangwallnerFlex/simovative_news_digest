@@ -33,8 +33,8 @@
     },
     "https://www.uni-bamberg.de/presse/pressemitteilungen/": {
       "hochschule": "Universität Bamberg",
-      "article_url_pattern": "https://www.uni-bamberg.de/presse/pressemitteilungen/artikel/{slug}/",
-      "example": "https://www.uni-bamberg.de/presse/pressemitteilungen/artikel/dies-academicus-2025/",
+      "article_url_pattern": "https://www.uni-bamberg.de/presse/pm/artikel/{slug}/",
+      "example": "https://www.uni-bamberg.de/presse/pm/artikel/veranstaltungen-maerz-2026-2/",
       "cms": "TYPO3"
     },
     "https://www.hfk-bayreuth.de/veranstaltungen": {
@@ -43,17 +43,17 @@
       "example": "https://www.hfk-bayreuth.de/veranstaltungen/fortbildungenmeisterkurse",
       "note": "Kleine Hochschule – nur Veranstaltungsseiten, keine klassischen Nachrichtenartikel"
     },
-    "https://www.uni-bayreuth.de/en/press-office/news": {
+    "https://www.uni-bayreuth.de/en/press-releases": {
       "hochschule": "Universität Bayreuth",
-      "article_url_pattern": "https://www.uni-bayreuth.de/pressemitteilung/{slug}",
-      "example": "https://www.uni-bayreuth.de/pressemitteilung/vorstand-univerein-2025",
+      "article_url_pattern": "https://www.uni-bayreuth.de/en/press-releases/{slug}",
+      "example": "https://www.uni-bayreuth.de/en/press-releases/new-vice-presidents-2025",
       "cms": "TYPO3"
     },
     "https://www.hs-coburg.de/nachrichten/": {
       "hochschule": "HS Coburg",
-      "article_url_pattern": "https://www.hs-coburg.de/nachrichten/{slug}/",
-      "example": "nicht eindeutig ermittelbar – WordPress-basiert, Atom-Feed unter /ueber-uns/presse/feed.html",
-      "note": "Artikelstruktur über Websuche nicht eindeutig identifizierbar, vermutlich WordPress mit /nachrichten/{slug}/"
+      "article_url_pattern": "https://www.hs-coburg.de/news/{slug}/",
+      "example": "https://www.hs-coburg.de/news/leben-als-studi-knapp-500-erstsemester-starten-an-der-hochschule/",
+      "cms": "WordPress"
     },
     "https://www.th-deg.de/de/hochschule/aktuelles": {
       "hochschule": "TH Deggendorf",
@@ -63,9 +63,8 @@
     },
     "https://www.ku.de/en/die-ku/kontakt/presse/media-information": {
       "hochschule": "KU Eichstätt-Ingolstadt",
-      "article_url_pattern": "https://www.ku.de/en/the-ku/faculties/{faculty}/departments/{dept}/all-news",
-      "example": "https://www.ku.de/en/the-ku/faculties/mgf/departments/mids/all-news",
-      "note": "News verteilt über Fakultätsseiten, kein zentrales Artikelmuster"
+      "article_url_pattern": "https://www.ku.de/en/die-ku/kontakt/presse/media-information-detail/{slug}",
+      "example": "https://www.ku.de/en/die-ku/kontakt/presse/media-information-detail/ku-voted-germanys-most-popular-university-for-4th-time"
     },
     "https://www.fau.eu/newsportal/": {
       "hochschule": "FAU Erlangen-Nürnberg",
@@ -105,14 +104,16 @@
     },
     "https://www.adbk.de/en/aktuell-en.html": {
       "hochschule": "Akademie der Bildenden Künste München",
-      "article_url_pattern": "https://www.adbk.de/de/aktuell/aktuell-blog/news/{slug}.html",
-      "example": "https://www.adbk.de/de/aktuell/aktuell-blog/news/werkstattpreis-2025-an-die-studienwerkstatt-fuer-radierung-verliehen.html",
+      "article_url_pattern_blog": "https://www.adbk.de/en/aktuell-en/aktuell-kategorieblog-en/{slug}.html",
+      "article_url_pattern_news": "https://www.adbk.de/en/aktuell-en/aktuell-kategorieblog-en/news/{slug}.html",
+      "article_url_pattern_archiv": "https://www.adbk.de/en/aktuell-en/archiv-aktuell-en/{slug}.html",
+      "example": "https://www.adbk.de/en/aktuell-en/aktuell-kategorieblog-en/bewerbung-2026.html",
       "cms": "Joomla"
     },
-    "https://hm.edu/aktuelles/news/": {
+    "https://hm.edu/aktuelles/newsroom.de.html": {
       "hochschule": "HAW München",
       "article_url_pattern": "https://hm.edu/aktuelles/news/news_detailseite_{id}.de.html",
-      "example": "https://hm.edu/aktuelles/news/news_detailseite_440960.de.html",
+      "example": "https://hm.edu/aktuelles/news/news_detailseite_501696.de.html",
       "note": "Numerische ID im Dateinamen, auch Fakultäts-News unter {fakultaet}.hm.edu/aktuelles/newsdetail/"
     },
     "https://www.hdbw-hochschule.de/aktuelles": {
@@ -178,9 +179,10 @@
     },
     "https://augustana.de/aktuelles/aktuelle-meldungen.html": {
       "hochschule": "Augustana-Hochschule Neuendettelsau",
-      "article_url_pattern": "https://augustana.de/aktuelles/aktuelle-meldungen/meldungen-wintersemester-{YYYY}/{YYYY-sem}/{slug}.html",
-      "example": "https://augustana.de/aktuelles/aktuelle-meldungen/meldungen-wintersemester-2024/2025-2/geruechte-semesterabschluss-und-verabschiedungen.html",
-      "note": "Semester-basierte Ordnerstruktur"
+      "article_url_pattern_ws": "https://augustana.de/aktuelles/aktuelle-meldungen/meldungen-wintersemester-{YYYY}/{YYYY}/{slug}.html",
+      "article_url_pattern_ss": "https://augustana.de/aktuelles/aktuelle-meldungen/meldungen-sommersemester-{YYYY}/{YYYY}/{slug}.html",
+      "example": "https://augustana.de/aktuelles/aktuelle-meldungen/meldungen-wintersemester-2024/2025/augustana-tag-2025.html",
+      "note": "Semester-basierte Ordnerstruktur: meldungen-{wintersemester|sommersemester}-{YYYY}/{YYYY}/{slug}.html"
     },
     "https://www.hnu.de/hochschule/hochschul-news": {
       "hochschule": "HNU Neu-Ulm",
@@ -190,8 +192,9 @@
     },
     "https://adbk-nuernberg.de/news/": {
       "hochschule": "Akademie der Bildenden Künste Nürnberg",
-      "article_url_pattern": "https://adbk-nuernberg.de/en/news/{slug}/",
-      "example": "https://adbk-nuernberg.de/en/news/ausstellungsprogramm-fur-das-sommersemester-2025/",
+      "article_url_pattern_news": "https://adbk-nuernberg.de/news/{slug}/",
+      "article_url_pattern_termine": "https://adbk-nuernberg.de/termine/{slug}/",
+      "example": "https://adbk-nuernberg.de/news/fantasies-of-the-people/",
       "cms": "WordPress"
     },
     "https://www.evhn.de/hochschule/aktuelles/news": {
@@ -203,11 +206,11 @@
     },
     "https://www.hfm-nuernberg.de/en/news": {
       "hochschule": "HfM Nürnberg",
-      "article_url_pattern": "https://www.hfm-nuernberg.de/en/news/{slug}",
-      "example": "nicht eindeutig ermittelbar",
-      "note": "Kleine Hochschule, wenige Nachrichtenartikel"
+      "article_url_pattern": "https://www.hfm-nuernberg.de/en/news/detail/{slug}",
+      "example": "https://www.hfm-nuernberg.de/en/news/detail/study-programmes-available-from-winter-semester-2026-27",
+      "cms": "TYPO3"
     },
-    "https://www.th-nuernberg.de/service/news-presse/": {
+    "https://www.th-nuernberg.de/news-archiv/": {
       "hochschule": "TH Nürnberg Georg Simon Ohm",
       "article_url_pattern_news": "https://www.th-nuernberg.de/news/{id}-{slug}/",
       "article_url_pattern_presse": "https://www.th-nuernberg.de/pressemitteilung/{id}-{slug}/",
@@ -235,16 +238,15 @@
     },
     "https://www.oth-regensburg.de/en/news": {
       "hochschule": "OTH Regensburg",
-      "article_url_pattern": "https://www.oth-regensburg.de/news/detailansicht/{slug}",
-      "example": "https://www.oth-regensburg.de/news/detailansicht/testnachricht-rss-feed-bibliothek",
+      "article_url_pattern": "https://www.oth-regensburg.de/en/news/detail/{slug}",
+      "example": "https://www.oth-regensburg.de/en/news/detail/3-millionen-euro-fuer-klimaschutz-oth-regensburg-forscht-an-reduzierung-der-co2-emissionen-bei-der-zementproduktion",
       "cms": "TYPO3"
     },
-    "https://www.uni-regensburg.de/universitaet/aktuelles": {
+    "https://www.uni-regensburg.de/universitaet/aktuelles/nachrichten": {
       "hochschule": "Universität Regensburg",
-      "article_url_pattern": "https://blog.uni-regensburg.de/{slug}/",
-      "example": "https://blog.uni-regensburg.de/rss-feed",
-      "note": "Hauptnews über ScienceBlog (blog.uni-regensburg.de), Pressemeldungen über TYPO3",
-      "cms": "WordPress (Blog), TYPO3 (Hauptseite)"
+      "article_url_pattern": "https://www.uni-regensburg.de/universitaet/aktuelles/nachrichten/nachricht/{slug}",
+      "example": "https://www.uni-regensburg.de/universitaet/aktuelles/nachrichten/nachricht/17-03-2026_junges-kolleg-prof-gerti-beliu-ist-neues-mitglied",
+      "cms": "TYPO3"
     },
     "https://www.th-rosenheim.de/die-hochschule/aktuelles/news": {
       "hochschule": "TH Rosenheim",
@@ -254,9 +256,8 @@
     },
     "https://www.hswt.de/newsroom": {
       "hochschule": "HSWT Weihenstephan-Triesdorf",
-      "article_url_pattern": "https://www.hswt.de/newsroom/veranstaltungskalender/detail/{slug}",
-      "example": "https://www.hswt.de/newsroom/veranstaltungskalender/detail/weihenstephaner-hochschulforum-gartenbau-2025",
-      "note": "Newsroom zeigt hauptsächlich Veranstaltungen; Pressemitteilungen ggf. separater Pfad",
+      "article_url_pattern": "https://www.hswt.de/news-list/detail/{slug}",
+      "example": "https://www.hswt.de/news-list/detail/zwei-neue-hochschulraetinnen-an-der-hswt",
       "cms": "TYPO3"
     },
     "https://hfm-wuerzburg.de/ueber-uns/news-archiv": {
@@ -272,23 +273,28 @@
       "example": "https://www.thws.de/service/news-presse/pressemeldungen/thema/thws-alumnus-gewinnt-vde-bayern-award-2025/",
       "cms": "TYPO3"
     },
-    "https://www.uni-wuerzburg.de/en/news-and-events/": {
+    "https://www.uni-wuerzburg.de/en/news-and-events/news/archive/": {
       "hochschule": "Universität Würzburg",
-      "article_url_pattern": "https://www.uni-wuerzburg.de/en/news-and-events/einblick/single/news/{slug}/",
-      "example": "https://www.uni-wuerzburg.de/en/news-and-events/einblick/single/news/people-18-november-2025/",
+      "article_url_pattern": "https://www.uni-wuerzburg.de/en/news-and-events/news/detail/news/{slug}/",
+      "example": "https://www.uni-wuerzburg.de/en/news-and-events/news/detail/news/rector-ranking-2025/",
       "cms": "TYPO3"
     },
-    "https://ufu-muenchen.de/news-und-events/": {
+    "https://ufu-muenchen.de/category/news/": {
       "hochschule": "UFU München",
-      "article_url_pattern": "https://ufu-muenchen.de/news-und-events/{slug}/",
-      "example": "nicht eindeutig ermittelbar",
-      "note": "Sehr kleine Hochschule, wenige Nachrichtenartikel"
+      "article_url_pattern": "https://ufu-muenchen.de/{slug}/",
+      "exclude_url_patterns": [
+        "https://ufu-muenchen.de/category/{slug}/",
+        "https://ufu-muenchen.de/tag/{slug}/",
+        "https://ufu-muenchen.de/category/news/page/{id}/"
+      ],
+      "example": "https://ufu-muenchen.de/ukrainische-freie-universitaet-bei-cafe-kyiv-2026/",
+      "cms": "WordPress"
     },
-    "https://www.srh-university.de/de/wilhelm-loehe-hochschule/": {
-      "hochschule": "SRH Wilhelm Löhe Hochschule Fürth",
-      "article_url_pattern": "https://www.srh-university.de/de/wilhelm-loehe-hochschule/{slug}/",
-      "example": "nicht eindeutig ermittelbar",
-      "note": "Eingebettet in SRH University Plattform, keine dedizierte News-Seite"
+    "https://www.srh-university.de/de/news/": {
+      "hochschule": "SRH University",
+      "article_url_pattern": "https://www.srh-university.de/de/folder/news/{YYYY}/{MM}-{DD}/{slug}/",
+      "example": "https://www.srh-university.de/de/folder/news/2026/03-26/srh-university-erreicht-spitzenplatz-beim-exist-gruendungsstipendium/",
+      "cms": "Custom CMS"
     },
     "https://theaterakademie.de/de/presse": {
       "hochschule": "Bayerische Theaterakademie August Everding",
@@ -296,22 +302,29 @@
       "example": "nicht eindeutig ermittelbar",
       "note": "Pressekontakt-Seite, keine klassische Nachrichtenstruktur"
     },
-    "https://www.hfoed.bayern.de/zv/aktuelles/veranstaltungen/index.html": {
+    "https://www.hfoed.bayern.de/zv/aktuelles/pressemitteilungen/index.html": {
       "hochschule": "HföD Bayern",
-      "article_url_pattern": "https://www.hfoed.bayern.de/zv/aktuelles/veranstaltungen/{slug}/index.html",
+      "article_url_pattern": "https://www.hfoed.bayern.de/zv/aktuelles/pressemitteilungen/{slug}/index.html",
       "example": "nicht eindeutig ermittelbar",
-      "note": "Behördliche Website, keine klassische Nachrichtenstruktur"
+      "note": "Behördliche Website, Pressemitteilungen-Seite. Keine individuellen Artikel-Links erkennbar."
     },
     "https://www.euruni.edu/blog/": {
       "hochschule": "EU Business School München",
       "article_url_pattern": "https://www.euruni.edu/blog/{slug}/",
+      "exclude_url_patterns": [
+        "https://www.euruni.edu/blog/category/{slug}/",
+        "https://www.euruni.edu/blog/author/{slug}/",
+        "https://www.euruni.edu/blog/tag/{slug}/",
+        "https://www.euruni.edu/blog/page/{id}/"
+      ],
       "example": "https://www.euruni.edu/blog/benefits-of-studying-in-munich/",
       "cms": "Custom CMS"
     },
-    "https://www.iu.de/news/en/": {
+    "https://www.iu.de/news/en/?h=1": {
       "hochschule": "IU Internationale Hochschule",
       "article_url_pattern": "https://www.iu.de/news/en/{slug}/",
       "example": "https://www.iu.de/news/en/iu-innovation-award-2025-these-are-the-winners/",
+      "note": "Fully JS-rendered, pattern matching may not find links. Query param ?h=1 needed.",
       "cms": "Custom CMS"
     },
     "https://www.fom.de/de/presse/Presse.html": {
@@ -341,9 +354,10 @@
     },
     "https://www.icn-artem.com/en/actualites/": {
       "hochschule": "ICN Business School Nürnberg",
-      "article_url_pattern": "https://www.icn-artem.com/en/actualites/{slug}/",
-      "example": "nicht eindeutig ermittelbar",
-      "note": "Französische Hochschule mit Standort Nürnberg, News hauptsächlich auf Französisch/Englisch"
+      "article_url_pattern": "https://www.icn-artem.com/en/news/{slug}/",
+      "example": "https://www.icn-artem.com/en/news/francois-therin-appointed-director-general-of-icn/",
+      "note": "Articles under /en/news/ not /en/actualites/",
+      "cms": "WordPress"
     }
   }
 }

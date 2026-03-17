@@ -33,13 +33,14 @@ def phase1_key_mismatches():
 
     mismatches = []
     matched = []
+    config_normalized = {u.rstrip("/"): u for u in all_config_urls}
     for url in all_config_urls:
-        if url in patterns_map:
+        if url.rstrip("/") in patterns_map:
             matched.append(url)
         else:
             mismatches.append(url)
 
-    orphan_patterns = [k for k in patterns_map if k not in all_config_urls]
+    orphan_patterns = [k for k in patterns_map if k not in config_normalized]
 
     print("\n=== Phase 1: URL Key Mismatch Report ===\n")
     print(f"Config URLs: {len(all_config_urls)}")
@@ -78,8 +79,8 @@ def phase2_test_patterns(domain_urls: list[str] | None = None):
         browser = pw.chromium.launch(headless=True)
 
         for domain_url in all_config_urls:
-            patterns = patterns_map.get(domain_url)
-            if not patterns:
+            entry = patterns_map.get(domain_url.rstrip("/"))
+            if not entry:
                 results.append({
                     "domain": domain_url,
                     "status": "no_pattern",
@@ -99,15 +100,22 @@ def phase2_test_patterns(domain_urls: list[str] | None = None):
                     page.wait_for_timeout(3000)
 
                 dismiss_cookies(page)
-                html = page.content()
-                soup = BeautifulSoup(html, "lxml")
 
-                # Count total links
-                all_links = [a for a in soup.find_all("a", href=True)]
-                total = len(all_links)
+                # Scroll-retry for JS-heavy sites
+                patterns = entry["patterns"]
+                excludes = entry.get("excludes", [])
+                discovered = []
+                total = 0
+                for _attempt in range(3):
+                    html = page.content()
+                    soup = BeautifulSoup(html, "lxml")
+                    total = len(soup.find_all("a", href=True))
+                    discovered = _find_matching_links(soup, domain_url, patterns, excludes)
+                    if discovered or _attempt == 2:
+                        break
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    page.wait_for_timeout(3000)
 
-                # Find matches
-                discovered = _find_matching_links(soup, domain_url, patterns)
                 n_matched = len(discovered)
 
                 # Classify result
@@ -155,12 +163,89 @@ def phase2_test_patterns(domain_urls: list[str] | None = None):
     return results
 
 
+def phase3_dump_urls(domain_urls: list[str]):
+    """Dump all <a href> URLs from listing pages, grouped by path prefix."""
+    from collections import defaultdict
+    from urllib.parse import urljoin, urlparse
+
+    from bs4 import BeautifulSoup
+    from playwright.sync_api import sync_playwright
+    from src.utils.scraping_helpers import dismiss_cookies
+
+    print("\n=== Phase 3: URL Dump ===\n")
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+
+        for domain_url in domain_urls:
+            page = browser.new_page()
+            try:
+                try:
+                    page.goto(domain_url, timeout=30000, wait_until="networkidle")
+                except Exception:
+                    page.goto(domain_url, timeout=30000, wait_until="domcontentloaded")
+                    page.wait_for_timeout(3000)
+
+                dismiss_cookies(page)
+
+                # Scroll-retry for JS-heavy sites
+                for _attempt in range(3):
+                    html = page.content()
+                    soup = BeautifulSoup(html, "lxml")
+                    if soup.find_all("a", href=True) or _attempt == 2:
+                        break
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    page.wait_for_timeout(3000)
+
+                parsed_base = urlparse(domain_url)
+                same_domain_urls = defaultdict(list)
+                external_count = 0
+
+                for a in soup.find_all("a", href=True):
+                    href = a["href"].strip()
+                    if not href or href.startswith(("#", "mailto:", "tel:", "javascript:")):
+                        continue
+                    full_url = urljoin(domain_url, href)
+                    parsed = urlparse(full_url)
+                    if parsed.netloc != parsed_base.netloc:
+                        external_count += 1
+                        continue
+                    # Group by first 3 path segments
+                    parts = parsed.path.strip("/").split("/")
+                    prefix = "/" + "/".join(parts[:3]) + "/" if len(parts) >= 3 else parsed.path
+                    same_domain_urls[prefix].append(full_url)
+
+                print(f"--- {domain_url} ---")
+                print(f"  Same-domain links: {sum(len(v) for v in same_domain_urls.values())}, External: {external_count}")
+                for prefix in sorted(same_domain_urls, key=lambda p: -len(same_domain_urls[p])):
+                    urls = same_domain_urls[prefix]
+                    print(f"\n  [{len(urls):>3}] {prefix}")
+                    for u in urls[:8]:
+                        print(f"        {u}")
+                    if len(urls) > 8:
+                        print(f"        ... and {len(urls) - 8} more")
+                print()
+
+            except Exception as e:
+                print(f"  [ERROR] {domain_url} — {e}\n")
+            finally:
+                page.close()
+
+        browser.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Audit university crawler URL patterns")
     parser.add_argument("--no-browser", action="store_true", help="Phase 1 only (no Playwright)")
     parser.add_argument("--domains", nargs="+", help="Test specific domain URLs only")
+    parser.add_argument("--dump-urls", action="store_true", help="Dump all URLs from listing pages (requires --domains)")
     parser.add_argument("--output", type=str, help="Save JSON report to file")
     args = parser.parse_args()
+
+    if args.dump_urls:
+        domains = args.domains or (UNIVERSITY_NEWS_URLS + MANDATORY_DOMAINS)
+        phase3_dump_urls(domains)
+        return
 
     mismatches, orphans = phase1_key_mismatches()
 
