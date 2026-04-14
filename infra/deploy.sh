@@ -36,15 +36,32 @@ for arg in "$@"; do
 done
 
 # ── Load .env ────────────────────────────────────────────────────────
+# Cannot use `source .env` because values like AZURE_STORAGE_CONNECTION_STRING
+# contain semicolons which bash interprets as command separators.
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "ERROR: .env file not found at $ENV_FILE"
   exit 1
 fi
 
-set -a
-source "$ENV_FILE"
-set +a
+_env_val() {
+  # Extract value for a key from .env, handling semicolons and special chars
+  grep "^$1=" "$ENV_FILE" | head -1 | cut -d= -f2-
+}
+
+OPENAI_API_KEY="$(_env_val OPENAI_API_KEY)"
+OPENAI_MODEL_NAME="$(_env_val OPENAI_MODEL_NAME)"
+NEWSAPI_KEY="$(_env_val NEWSAPI_KEY)"
+SERPAPI_KEY="$(_env_val SERPAPI_KEY)"
+SEND_GRID_API_KEY="$(_env_val SEND_GRID_API_KEY)"
+AZURE_STORAGE_CONNECTION_STRING="$(_env_val AZURE_STORAGE_CONNECTION_STRING)"
+SMTP_HOST="$(_env_val SMTP_HOST)"
+SMTP_PORT="$(_env_val SMTP_PORT)"
+SMTP_USER="$(_env_val SMTP_USER)"
+SMTP_PASSWORD="$(_env_val SMTP_PASSWORD)"
+EMAIL_FROM="$(_env_val EMAIL_FROM)"
+EMAIL_RECIPIENTS="$(_env_val EMAIL_RECIPIENTS)"
+DOMAIN_CRAWLER_LLM_FALLBACK="$(_env_val DOMAIN_CRAWLER_LLM_FALLBACK)"
 
 echo "=== News Digest Azure Deployment ==="
 echo "Resource group: $RESOURCE_GROUP"
