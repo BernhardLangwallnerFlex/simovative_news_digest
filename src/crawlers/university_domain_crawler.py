@@ -6,14 +6,16 @@ on university listing pages, then scrapes each article for content.
 
 import json
 import logging
+import math
 import re
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_playwright
 
-from config import LINK_CLASSIFIER_ENABLED, LINK_DISCOVERY_THRESHOLD
+from config import CRAWLER_WORKERS, LINK_CLASSIFIER_ENABLED, LINK_DISCOVERY_THRESHOLD
 from src.crawlers.domain_crawler import (
     _extract_article_text,
     _extract_date_from_article_html,
@@ -226,6 +228,8 @@ def crawl_university_domain(
     excludes = entry.get("excludes", [])
 
     own_browser = browser is None
+    pw = None
+    page = None
     try:
         if own_browser:
             pw = sync_playwright().start()
@@ -237,7 +241,7 @@ def crawl_university_domain(
         # --- Fetch listing page ---
         try:
             page.goto(domain_url, timeout=30000, wait_until="networkidle")
-        except Exception:
+        except PlaywrightTimeoutError:
             logger.info("networkidle timeout for %s, retrying with domcontentloaded", domain_url)
             page.goto(domain_url, timeout=30000, wait_until="domcontentloaded")
             page.wait_for_timeout(3000)
@@ -294,7 +298,6 @@ def crawl_university_domain(
 
         if not discovered:
             logger.info("No article links found on %s (patterns + classifier)", domain_url)
-            page.close()
             return []
 
         logger.info(
@@ -312,7 +315,7 @@ def crawl_university_domain(
             try:
                 try:
                     page.goto(article_url, timeout=30000, wait_until="networkidle")
-                except Exception:
+                except PlaywrightTimeoutError:
                     page.goto(article_url, timeout=30000, wait_until="domcontentloaded")
                     page.wait_for_timeout(3000)
 
@@ -357,7 +360,6 @@ def crawl_university_domain(
                     "crawl_error": str(e),
                 })
 
-        page.close()
         logger.info("University domain %s: scraped %d articles", domain_url, len(articles))
         return articles
 
@@ -365,9 +367,69 @@ def crawl_university_domain(
         logger.error("University domain crawl failed for %s: %s", domain_url, e)
         return []
     finally:
+        if page and not page.is_closed():
+            page.close()
         if own_browser:
             browser.close()
             pw.stop()
+
+
+def _crawl_domain_chunk(
+    domain_urls: list[str],
+    max_articles: int,
+    days_back: int,
+) -> tuple[list[dict], list[dict]]:
+    """Crawl a chunk of domains in a single process with its own browser.
+
+    Designed to run inside a ProcessPoolExecutor worker. Each worker gets
+    its own Playwright browser instance for full isolation.
+
+    Returns:
+        (articles, domain_stats) tuple.
+    """
+    articles: list[dict] = []
+    stats: list[dict] = []
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+
+        for domain_url in domain_urls:
+            if not browser.is_connected():
+                logger.warning("Browser disconnected — relaunching before %s", domain_url)
+                try:
+                    browser.close()
+                except Exception:
+                    pass
+                browser = pw.chromium.launch(headless=True)
+
+            try:
+                result = crawl_university_domain(
+                    domain_url,
+                    max_articles=max_articles,
+                    days_back=days_back,
+                    browser=browser,
+                )
+                articles.extend(result)
+                method = result[0]["discovery_method"] if result else "none"
+                stats.append({
+                    "domain": domain_url,
+                    "articles": len(result),
+                    "method": method,
+                })
+            except Exception as e:
+                logger.error("University domain crawl failed for %s: %s", domain_url, e)
+                stats.append({
+                    "domain": domain_url,
+                    "articles": 0,
+                    "method": "error",
+                })
+
+        try:
+            browser.close()
+        except Exception:
+            pass
+
+    return articles, stats
 
 
 def crawl_all_university_domains(
@@ -377,7 +439,8 @@ def crawl_all_university_domains(
 ) -> list[dict]:
     """Crawl all university news pages using pattern-based link discovery.
 
-    Shares a single Playwright browser instance across all domains.
+    Splits domains across CRAWLER_WORKERS parallel processes, each with its
+    own Playwright browser instance.
 
     Args:
         university_urls: List of listing page URLs.
@@ -387,36 +450,39 @@ def crawl_all_university_domains(
     Returns:
         Combined list of raw article dicts from all domains.
     """
+    if not university_urls:
+        return []
+
+    workers = min(CRAWLER_WORKERS, len(university_urls))
+
+    # Split URLs into roughly equal chunks
+    chunk_size = math.ceil(len(university_urls) / workers)
+    chunks = [
+        university_urls[i : i + chunk_size]
+        for i in range(0, len(university_urls), chunk_size)
+    ]
+
+    logger.info(
+        "Crawling %d domains with %d workers (%d domains/worker)",
+        len(university_urls), len(chunks), chunk_size,
+    )
+
     all_articles: list[dict] = []
     domain_stats: list[dict] = []
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
-
-        for domain_url in university_urls:
+    with ProcessPoolExecutor(max_workers=len(chunks)) as executor:
+        futures = {
+            executor.submit(_crawl_domain_chunk, chunk, max_articles, days_back): i
+            for i, chunk in enumerate(chunks)
+        }
+        for future in as_completed(futures):
             try:
-                articles = crawl_university_domain(
-                    domain_url,
-                    max_articles=max_articles,
-                    days_back=days_back,
-                    browser=browser,
-                )
+                articles, stats = future.result()
                 all_articles.extend(articles)
-                method = articles[0]["discovery_method"] if articles else "none"
-                domain_stats.append({
-                    "domain": domain_url,
-                    "articles": len(articles),
-                    "method": method,
-                })
+                domain_stats.extend(stats)
             except Exception as e:
-                logger.error("University domain crawl failed for %s: %s", domain_url, e)
-                domain_stats.append({
-                    "domain": domain_url,
-                    "articles": 0,
-                    "method": "error",
-                })
-
-        browser.close()
+                chunk_idx = futures[future]
+                logger.error("Domain crawl worker %d failed: %s", chunk_idx, e)
 
     # --- Per-domain summary ---
     working = sum(1 for s in domain_stats if s["articles"] > 0)

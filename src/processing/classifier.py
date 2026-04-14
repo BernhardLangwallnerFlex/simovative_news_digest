@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from openai import OpenAI
 
@@ -117,21 +119,48 @@ def classify_article(article: dict, client: OpenAI, model: str) -> dict:
 
 
 def classify_articles(articles: list[dict]) -> list[dict]:
-    """Classify all articles using OpenAI. Skips articles with no title."""
+    """Classify all articles using OpenAI. Skips articles with no title.
+
+    Uses ThreadPoolExecutor for parallel API calls (I/O-bound).
+    """
+    from config import CLASSIFIER_WORKERS
+
     model = os.getenv("OPENAI_MODEL_NAME", "gpt-4.1")
     client = _get_client()
+    total = len(articles)
 
-    classified = []
-    for i, article in enumerate(articles, 1):
-        title = article["content"]["title"]
-        if not title:
+    # Separate articles with/without titles
+    to_classify = []
+    skipped = []
+    for article in articles:
+        if not article["content"]["title"]:
             logger.info("Skipping article %s — no title", article["article_id"])
-            classified.append(article)
-            continue
+            skipped.append(article)
+        else:
+            to_classify.append(article)
 
-        logger.info("Classifying %d/%d: %s", i, len(articles), title[:80])
-        classified.append(classify_article(article, client, model))
+    progress = {"done": 0}
+    lock = threading.Lock()
+
+    def _classify_one(article):
+        result = classify_article(article, client, model)
+        with lock:
+            progress["done"] += 1
+            logger.info(
+                "Classified %d/%d: %s",
+                progress["done"], len(to_classify),
+                article["content"]["title"][:80],
+            )
+        return result
+
+    logger.info("Classifying %d articles with %d workers", len(to_classify), CLASSIFIER_WORKERS)
+    classified = list(skipped)
+
+    with ThreadPoolExecutor(max_workers=CLASSIFIER_WORKERS) as executor:
+        futures = {executor.submit(_classify_one, a): a for a in to_classify}
+        for future in as_completed(futures):
+            classified.append(future.result())
 
     processed = sum(1 for a in classified if a["analysis"]["processed"])
-    logger.info("Classification complete: %d/%d articles processed", processed, len(classified))
+    logger.info("Classification complete: %d/%d articles processed", processed, total)
     return classified

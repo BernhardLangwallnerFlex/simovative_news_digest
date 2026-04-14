@@ -2,6 +2,7 @@
 """Simovative University Market Intelligence News Digest — Pipeline Entry Point."""
 
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
@@ -25,6 +26,7 @@ from src.storage.local_store import (
     save_processed,
     save_raw,
 )
+from src.reporting.source_transparency import generate_source_transparency_report
 from src.utils.logging_setup import setup_logging
 
 DAYS_BACK = 5
@@ -59,57 +61,59 @@ def main():
         "errors": [],
     }
 
-    # ── Step 1a: RSS Feeds ───────────────────────────────────────────
-    logger.info("Step 1a: Crawling %d RSS feeds", len(RSS_FEEDS))
-    try:
-        rss_raw = parse_rss_feeds(RSS_FEEDS, start_date, end_date)
-        stats["rss_articles"] = len(rss_raw)
-        save_raw(rss_raw, "rss_articles", run_date)
-        logger.info("RSS: %d articles collected", len(rss_raw))
-    except Exception as e:
-        logger.error("RSS crawl failed: %s", e)
-        stats["errors"].append(f"RSS: {e}")
-        rss_raw = []
+    # ── Step 1: Crawl all sources concurrently ─────────────────────────
+    logger.info(
+        "Step 1: Crawling all sources concurrently "
+        "(RSS=%d, university=%d, mandatory=%d, NewsAPI=%d queries)",
+        len(RSS_FEEDS), len(UNIVERSITY_NEWS_URLS), len(MANDATORY_DOMAINS), len(NEWSAPI_QUERIES),
+    )
 
-    # ── Step 1b: Domain Scraping (HTML) ─────────────────────────────
-    logger.info("Step 1b: Crawling %d university domains (pattern-based)", len(UNIVERSITY_NEWS_URLS))
-    domain_raw = []
-    try:
-        uni_articles = crawl_all_university_domains(
-            UNIVERSITY_NEWS_URLS, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK
+    def _crawl_rss():
+        result = parse_rss_feeds(RSS_FEEDS, start_date, end_date)
+        save_raw(result, "rss_articles", run_date)
+        return result
+
+    def _crawl_domains():
+        all_domains = UNIVERSITY_NEWS_URLS + MANDATORY_DOMAINS
+        result = crawl_all_university_domains(
+            all_domains, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK
         )
-        domain_raw.extend(uni_articles)
-        logger.info("University domains: %d articles collected", len(uni_articles))
-    except Exception as e:
-        logger.error("University domain crawl failed: %s", e)
-        stats["errors"].append(f"University domains: {e}")
-    stats["domain_articles"] = len(domain_raw)
-    save_raw(domain_raw, "university_articles", run_date)
+        save_raw(result, "domain_articles", run_date)
+        return result
 
-    logger.info("Step 1b: Crawling %d mandatory domains (pattern-based)", len(MANDATORY_DOMAINS))
-    try:
-        mandatory_articles = crawl_all_university_domains(
-            MANDATORY_DOMAINS, max_articles=ARTICLES_PER_DOMAIN, days_back=DAYS_BACK
-        )
-        domain_raw.extend(mandatory_articles)
-        logger.info("Mandatory domains: %d articles collected", len(mandatory_articles))
-    except Exception as e:
-        logger.error("Mandatory domain crawl failed: %s", e)
-        stats["errors"].append(f"Mandatory domains: {e}")
-    stats["domain_articles"] = len(domain_raw)
-    save_raw(domain_raw, "domain_articles", run_date)
+    def _crawl_newsapi():
+        result = fetch_newsapi(NEWSAPI_QUERIES, days_back=DAYS_BACK)
+        save_raw(result, "newsapi_articles", run_date)
+        return result
 
-    # ── Step 1c: NewsAPI ─────────────────────────────────────────────
-    logger.info("Step 1c: Fetching NewsAPI (%d queries)", len(NEWSAPI_QUERIES))
-    try:
-        newsapi_raw = fetch_newsapi(NEWSAPI_QUERIES, days_back=DAYS_BACK)
-        stats["newsapi_articles"] = len(newsapi_raw)
-        save_raw(newsapi_raw, "newsapi_articles", run_date)
-        logger.info("NewsAPI: %d articles collected", len(newsapi_raw))
-    except Exception as e:
-        logger.error("NewsAPI failed: %s", e)
-        stats["errors"].append(f"NewsAPI: {e}")
-        newsapi_raw = []
+    rss_raw, domain_raw, newsapi_raw = [], [], []
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_rss = executor.submit(_crawl_rss)
+        future_domains = executor.submit(_crawl_domains)
+        future_newsapi = executor.submit(_crawl_newsapi)
+
+        for name, future, target in [
+            ("RSS", future_rss, "rss_raw"),
+            ("Domains", future_domains, "domain_raw"),
+            ("NewsAPI", future_newsapi, "newsapi_raw"),
+        ]:
+            try:
+                result = future.result()
+                if target == "rss_raw":
+                    rss_raw = result
+                elif target == "domain_raw":
+                    domain_raw = result
+                else:
+                    newsapi_raw = result
+                logger.info("%s: %d articles collected", name, len(result))
+            except Exception as e:
+                logger.error("%s crawl failed: %s", name, e)
+                stats["errors"].append(f"{name}: {e}")
+
+    stats["rss_articles"] = len(rss_raw)
+    stats["domain_articles"] = len(domain_raw)
+    stats["newsapi_articles"] = len(newsapi_raw)
 
     # ── Step 2: Normalize ────────────────────────────────────────────
     logger.info("Step 2: Normalizing articles")
@@ -158,6 +162,9 @@ def main():
     digest_articles = deduplicate_near_duplicates(digest_articles)
 
     stats["digest_included"] = len(digest_articles)
+
+    # ── Source Transparency Report ──────────────────────────────────
+    generate_source_transparency_report(normalized, new_articles, digest_articles, run_date)
 
     html = generate_html_digest(digest_articles, run_date=run_date)
     out_path = digest_path(run_date)

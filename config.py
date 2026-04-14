@@ -68,7 +68,7 @@ UNIVERSITY_NEWS_URLS = [
     "https://www.hswt.de/newsroom", 
     "https://hfm-wuerzburg.de/ueber-uns/news-archiv", 
     "https://www.thws.de/service/news-presse/", 
-    "https://www.uni-wuerzburg.de/en/news-and-events/news/archive/", 
+    "https://www.uni-wuerzburg.de/aktuelles/einblick/", 
     "https://ufu-muenchen.de/category/news/", 
     "https://www.srh-university.de/de/news/",
     "https://theaterakademie.de/de/presse", 
@@ -125,6 +125,10 @@ RSS_FEEDS = [
 ]
 
 ARTICLES_PER_DOMAIN = 20
+
+# Parallelization
+CRAWLER_WORKERS = 4        # Parallel Playwright browser processes for domain crawling
+CLASSIFIER_WORKERS = 10    # Parallel threads for OpenAI classification calls
 
 # Link classifier settings (sentence-transformers based)
 LINK_DISCOVERY_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
