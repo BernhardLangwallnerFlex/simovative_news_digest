@@ -80,33 +80,40 @@ def _extract_date_from_article_html(article_soup: BeautifulSoup) -> str | None:
         except (json.JSONDecodeError, AttributeError):
             continue
 
-    # Strategy 3: Dublin Core and generic date meta tags
-    for attr_name in ("date", "DC.date", "dc.date"):
-        meta = article_soup.find("meta", attrs={"name": attr_name})
-        if meta and meta.get("content"):
-            return meta["content"]
-
-    # Strategy 4: article:modified_time (fallback when published_time absent)
+    # Strategy 3: article:modified_time (fallback when published_time absent)
     meta = article_soup.find("meta", property="article:modified_time")
     if meta and meta.get("content"):
         return meta["content"]
 
-    # Strategy 5: <time> element
+    # Strategy 4: <time> element
     time_tag = article_soup.find("time")
     if time_tag:
         val = time_tag.get("datetime") or time_tag.get_text(strip=True)
         if val:
             return val
 
-    # Strategy 6: Regex scan of visible body text (first 5000 chars to avoid
-    # false positives from footers/copyright lines)
-    body = article_soup.find("body")
-    if body:
-        body_text = body.get_text()[:5000]
+    # Strategy 5: Regex scan of visible text — prefer <article>/<main> content
+    # (avoids nav/footer noise), then fall back to full body.
+    for container in (
+        article_soup.find("article"),
+        article_soup.find("main"),
+        article_soup.find("body"),
+    ):
+        if not container:
+            continue
+        container_text = container.get_text()[:8000]
         for pattern in _DATE_PATTERNS:
-            match = re.search(pattern, body_text)
+            match = re.search(pattern, container_text)
             if match:
                 return match.group(0)
+
+    # Strategy 6: Dublin Core and generic date meta tags (low priority — some
+    # CMS platforms set a site-wide template date that doesn't reflect the
+    # actual article publication date)
+    for attr_name in ("date", "DC.date", "dc.date"):
+        meta = article_soup.find("meta", attrs={"name": attr_name})
+        if meta and meta.get("content"):
+            return meta["content"]
 
     return None
 

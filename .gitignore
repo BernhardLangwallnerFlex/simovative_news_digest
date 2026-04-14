@@ -10,3 +10,6 @@ __pycache__
 *.pyzw
 
 Simovative_University_News_Digest_System_Spec_v1.md
+
+# Bicep parameters (contains secrets)
+infra/main.bicepparam

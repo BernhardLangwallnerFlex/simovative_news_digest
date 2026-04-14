@@ -273,10 +273,10 @@
       "example": "https://www.thws.de/service/news-presse/pressemeldungen/thema/thws-alumnus-gewinnt-vde-bayern-award-2025/",
       "cms": "TYPO3"
     },
-    "https://www.uni-wuerzburg.de/en/news-and-events/news/archive/": {
+    "https://www.uni-wuerzburg.de/aktuelles/einblick/": {
       "hochschule": "Universität Würzburg",
-      "article_url_pattern": "https://www.uni-wuerzburg.de/en/news-and-events/news/detail/news/{slug}/",
-      "example": "https://www.uni-wuerzburg.de/en/news-and-events/news/detail/news/rector-ranking-2025/",
+      "article_url_pattern": "https://www.uni-wuerzburg.de/aktuelles/einblick/single/news/{slug}/",
+      "example": "https://www.uni-wuerzburg.de/aktuelles/einblick/single/news/beta-for-weiterfoerderung/",
       "cms": "TYPO3"
     },
     "https://ufu-muenchen.de/category/news/": {

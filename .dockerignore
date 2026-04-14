@@ -1,0 +1,11 @@
+.venv/
+.git/
+.env
+__pycache__/
+*.pyc
+*.pyo
+.claude/
+=2.2.0
+scripts/
+test_*.py
+org_news_article_patterns.json
