@@ -125,7 +125,7 @@ def classify_articles(articles: list[dict]) -> list[dict]:
     """
     from config import CLASSIFIER_WORKERS
 
-    model = os.getenv("OPENAI_MODEL_NAME", "gpt-4.1")
+    model = os.getenv("OPENAI_MODEL_NAME", "gpt-5.4-mini")
     client = _get_client()
     total = len(articles)
 
