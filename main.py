@@ -29,7 +29,7 @@ from src.storage.local_store import (
 from src.reporting.source_transparency import generate_source_transparency_report
 from src.utils.logging_setup import setup_logging
 
-DAYS_BACK = 5
+DAYS_BACK = 14
 
 
 def main():

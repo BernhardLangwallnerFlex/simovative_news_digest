@@ -90,11 +90,11 @@
       "example": "nicht eindeutig ermittelbar",
       "note": "Blog-Seite, keine klassische News-Struktur identifizierbar"
     },
-    "https://www.hs-kempten.de/en/kempten-university/news": {
+    "https://www.hs-kempten.de/hochschule/aktuelles": {
       "hochschule": "HS Kempten",
-      "article_url_pattern": "https://www.hs-kempten.de/en/kempten-university/news/article/{slug}",
-      "example": "https://www.hs-kempten.de/en/kempten-university/news/article/rueckblick-gezial-2025-3154",
-      "note": "Artikel-URLs enthalten Slug + numerische ID"
+      "article_url_pattern": "https://www.hs-kempten.de/hochschule/aktuelles/artikel/{slug}",
+      "example": "https://www.hs-kempten.de/hochschule/aktuelles/artikel/bayerischer-tag-fuer-gute-lehre-2026-3945",
+      "note": "Slug endet mit numerischer ID; englische /en/ Seite hat keine Inhalte"
     },
     "https://www.haw-landshut.de/aktuelles/news": {
       "hochschule": "HS Landshut",
@@ -324,7 +324,8 @@
       "hochschule": "IU Internationale Hochschule",
       "article_url_pattern": "https://www.iu.de/news/en/{slug}/",
       "example": "https://www.iu.de/news/en/iu-innovation-award-2025-these-are-the-winners/",
-      "note": "Fully JS-rendered, pattern matching may not find links. Query param ?h=1 needed.",
+      "wait_for_selector": "a[href*='/news/en/']",
+      "note": "SPA; article cards populate after JS hydration — crawler waits for the selector before snapshotting",
       "cms": "Custom CMS"
     },
     "https://www.fom.de/de/presse/Presse.html": {
@@ -354,9 +355,19 @@
     },
     "https://www.icn-artem.com/en/actualites/": {
       "hochschule": "ICN Business School Nürnberg",
-      "article_url_pattern": "https://www.icn-artem.com/en/news/{slug}/",
-      "example": "https://www.icn-artem.com/en/news/francois-therin-appointed-director-general-of-icn/",
-      "note": "Articles under /en/news/ not /en/actualites/",
+      "article_url_pattern": "https://www.icn-artem.com/{long_slug}/",
+      "example": "https://www.icn-artem.com/emba-icn-promotion-20-you-gotcha/",
+      "exclude_url_patterns": [
+        "https://www.icn-artem.com/en/{slug}/",
+        "https://www.icn-artem.com/fr/{slug}/",
+        "https://www.icn-artem.com/de/{slug}/",
+        "https://www.icn-artem.com/category/{slug}/",
+        "https://www.icn-artem.com/tag/{slug}/",
+        "https://www.icn-artem.com/author/{slug}/",
+        "https://www.icn-artem.com/wp-content/{slug}/",
+        "https://www.icn-artem.com/wp-admin/{slug}/"
+      ],
+      "note": "Articles live at root /{slug}/; {long_slug} requires ≥3 hyphen-tokens to filter out short nav slugs",
       "cms": "WordPress"
     }
   }

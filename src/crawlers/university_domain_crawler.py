@@ -39,6 +39,9 @@ _PATTERNS_FILES = [
 _PLACEHOLDER_REGEX = {
     "{slug}": r"[a-zA-Z0-9](?:[a-zA-Z0-9._~%-]*[a-zA-Z0-9])?",
     "{Slug}": r"[a-zA-Z0-9](?:[a-zA-Z0-9._~%-]*[a-zA-Z0-9])?",  # deprecated alias
+    # long_slug requires at least 3 hyphen-separated tokens — for root-level
+    # article URLs where a plain {slug} would match every nav link.
+    "{long_slug}": r"[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+){2,}",
     "{YYYY}": r"\d{4}",
     "{MM}": r"\d{1,2}",
     "{DD}": r"\d{1,2}",
@@ -94,6 +97,7 @@ def _load_patterns() -> dict[str, dict]:
                 result[normalized] = {
                     "patterns": compiled,
                     "excludes": exclude_compiled,
+                    "wait_for_selector": info.get("wait_for_selector"),
                 }
 
         logger.info(
@@ -226,6 +230,7 @@ def crawl_university_domain(
 
     patterns = entry["patterns"]
     excludes = entry.get("excludes", [])
+    wait_for_selector = entry.get("wait_for_selector")
 
     own_browser = browser is None
     pw = None
@@ -247,6 +252,16 @@ def crawl_university_domain(
             page.wait_for_timeout(3000)
 
         dismiss_cookies(page)
+
+        # Per-domain hydration wait for JS-rendered listings (e.g. iu.de)
+        if wait_for_selector:
+            try:
+                page.wait_for_selector(wait_for_selector, timeout=10000)
+            except PlaywrightTimeoutError:
+                logger.info(
+                    "wait_for_selector %r timeout on %s — continuing",
+                    wait_for_selector, domain_url,
+                )
 
         # --- Find article links via pattern matching (with scroll-retry for JS sites) ---
         _MAX_RENDER_RETRIES = 2

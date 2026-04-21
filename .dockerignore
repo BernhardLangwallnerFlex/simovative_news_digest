@@ -8,4 +8,3 @@ __pycache__/
 =2.2.0
 scripts/
 test_*.py
-org_news_article_patterns.json

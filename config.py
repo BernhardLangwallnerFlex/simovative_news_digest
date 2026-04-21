@@ -39,7 +39,7 @@ UNIVERSITY_NEWS_URLS = [
     "https://www.hof-university.de/hochschule/aktuelles.html", 
     "https://www.thi.de/hochschule/aktuelles/presse/", 
     "https://www.fham.de/blog/", 
-    "https://www.hs-kempten.de/en/kempten-university/news", 
+    "https://www.hs-kempten.de/hochschule/aktuelles",
     "https://www.haw-landshut.de/aktuelles/news", 
     "https://www.adbk.de/en/aktuell-en.html", 
     "https://hm.edu/aktuelles/newsroom.de.html", 
