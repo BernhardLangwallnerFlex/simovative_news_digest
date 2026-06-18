@@ -71,6 +71,39 @@ def filter_for_digest(articles: list[dict]) -> list[dict]:
     return included
 
 
+def filter_for_verwaltung(articles: list[dict], exclude: list[dict]) -> list[dict]:
+    """Select articles for the Verwaltungsdigitalisierung section.
+
+    Include if NOT already in the Hochschule digest (`exclude`) AND
+    verwaltung_relevance_score >= threshold AND confidence_score >= 0.6 AND
+    primary_category != "Irrelevant". Intentionally NOT Hochschule-filtered.
+    """
+    from config import VERWALTUNG_RELEVANCE_THRESHOLD
+
+    excluded_ids = {a["article_id"] for a in exclude}
+    included = []
+    for a in articles:
+        analysis = a.get("analysis", {})
+        if not analysis.get("processed"):
+            continue
+        if a["article_id"] in excluded_ids:
+            continue
+        if analysis.get("primary_category", "") == "Irrelevant":
+            continue
+        if (analysis.get("verwaltung_relevance_score") or 0) < VERWALTUNG_RELEVANCE_THRESHOLD:
+            continue
+        if (analysis.get("confidence_score") or 0) < 0.6:
+            continue
+
+        bucket = _priority_bucket(analysis.get("priority_score") or 0)
+        a["digest"]["included"] = True
+        a["digest"]["priority_bucket"] = bucket
+        included.append(a)
+
+    logger.info("Verwaltung filter: %d articles included", len(included))
+    return included
+
+
 def _sort_articles(articles: list[dict]) -> list[dict]:
     """Sort by priority bucket (High→Medium→Low), then priority_score desc, then published_at desc."""
     def sort_key(a):
@@ -95,48 +128,72 @@ def _load_logo_base64() -> str | None:
     return f"data:image/png;base64,{b64}"
 
 
-def generate_html_digest(articles: list[dict], run_date: str) -> str:
-    """Render filtered articles as an HTML digest grouped by taxonomy category."""
-    # Group articles by primary_category
-    by_category: dict[str, list[dict]] = {}
-    for a in articles:
-        cat = a["analysis"]["primary_category"]
-        by_category.setdefault(cat, []).append(a)
+def _render_article_card(a: dict, show_sales_relevance: bool) -> str:
+    analysis = a["analysis"]
+    content = a["content"]
+    source = a["source"]
+    digest = a["digest"]
 
-    # Sort within each category
-    for cat in by_category:
-        by_category[cat] = _sort_articles(by_category[cat])
+    universities = ", ".join(analysis.get("entities", {}).get("universities", []))
+    bucket = digest.get("priority_bucket", "Low")
+    css_class = f"priority-{bucket.lower()}"
 
-    total = len(articles)
-    cats_with_articles = [c for c in CATEGORY_ORDER if c in by_category]
+    sales_html = ""
+    if show_sales_relevance:
+        sales_html = (
+            f'          <div class="sales-relevance">'
+            f'{escape(analysis.get("sales_relevance") or "")}</div>\n'
+        )
 
-    sections_html = []
-    for cat in cats_with_articles:
-        cat_articles = by_category[cat]
-        cards = []
-        for a in cat_articles:
-            analysis = a["analysis"]
-            content = a["content"]
-            source = a["source"]
-            digest = a["digest"]
-
-            universities = ", ".join(analysis.get("entities", {}).get("universities", []))
-            bucket = digest.get("priority_bucket", "Low")
-            css_class = f"priority-{bucket.lower()}"
-
-            cards.append(f"""\
+    return f"""\
         <div class="article-card {css_class}">
           <div class="article-title"><a href="{escape(source['url'])}">{escape(content['title'])}</a></div>
           <div class="article-meta">{escape(universities or source['name'])} | {escape(content.get('published_at') or 'unknown')} | {bucket}</div>
           <div class="signal-summary">{escape(analysis.get('signal_summary') or '')}</div>
-          <div class="sales-relevance">{escape(analysis.get('sales_relevance') or '')}</div>
-{_render_also_reported(a)}        </div>""")
+{sales_html}{_render_also_reported(a)}        </div>"""
 
+
+def _render_category_sections(articles: list[dict], show_sales_relevance: bool = True) -> tuple[str, int]:
+    """Group articles by category (fixed order) and render section HTML.
+
+    Returns (sections_html, number_of_categories_with_articles).
+    """
+    by_category: dict[str, list[dict]] = {}
+    for a in articles:
+        cat = a["analysis"]["primary_category"]
+        by_category.setdefault(cat, []).append(a)
+    for cat in by_category:
+        by_category[cat] = _sort_articles(by_category[cat])
+
+    cats_with_articles = [c for c in CATEGORY_ORDER if c in by_category]
+    sections_html = []
+    for cat in cats_with_articles:
+        cards = [_render_article_card(a, show_sales_relevance) for a in by_category[cat]]
         sections_html.append(f"""\
     <div class="category-section">
       <div class="category-title">{escape(cat)}</div>
 {''.join(cards)}
     </div>""")
+    return "".join(sections_html), len(cats_with_articles)
+
+
+def generate_html_digest(
+    articles: list[dict],
+    run_date: str,
+    verwaltung_articles: list[dict] | None = None,
+) -> str:
+    """Render the Hochschule digest, plus an optional Verwaltung section below it."""
+    hochschule_html, hs_cats = _render_category_sections(articles, show_sales_relevance=True)
+
+    verwaltung_block = ""
+    if verwaltung_articles:
+        v_html, _ = _render_category_sections(verwaltung_articles, show_sales_relevance=False)
+        verwaltung_block = f"""\
+  <h2 class="verwaltung-heading">Verwaltungsdigitalisierung</h2>
+  <p class="summary">{len(verwaltung_articles)} Artikel</p>
+{v_html}"""
+
+    total = len(articles)
 
     logo_uri = _load_logo_base64()
     logo_html = ""
@@ -154,6 +211,7 @@ def generate_html_digest(articles: list[dict], run_date: str) -> str:
     .logo {{ text-align: center; margin-bottom: 24px; }}
     .logo img {{ max-width: 280px; height: auto; }}
     h1 {{ border-bottom: 3px solid #1a1a2e; padding-bottom: 12px; text-align: center; }}
+    .verwaltung-heading {{ margin-top: 48px; border-bottom: 3px solid #1a1a2e; padding-bottom: 12px; text-align: center; }}
     .summary {{ color: #555; margin-bottom: 32px; }}
     .category-section {{ margin: 32px 0; }}
     .category-title {{ font-size: 1.3em; font-weight: bold; color: #1a1a2e; border-bottom: 2px solid #ddd; padding-bottom: 6px; margin-bottom: 16px; }}
@@ -173,7 +231,7 @@ def generate_html_digest(articles: list[dict], run_date: str) -> str:
 </head>
 <body>
 {logo_html}  <h1>Simovative University News Digest — {escape(run_date)}</h1>
-  <p class="summary">{total} Artikel | {len(cats_with_articles)} Kategorien</p>
-{''.join(sections_html)}
+  <p class="summary">{total} Artikel | {hs_cats} Kategorien</p>
+{hochschule_html}{verwaltung_block}
 </body>
 </html>"""

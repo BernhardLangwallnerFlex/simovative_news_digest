@@ -126,6 +126,10 @@ RSS_FEEDS = [
 
 ARTICLES_PER_DOMAIN = 20
 
+# Minimum verwaltung_relevance_score for an article to appear in the
+# Verwaltungsdigitalisierung section of the digest.
+VERWALTUNG_RELEVANCE_THRESHOLD = 0.6
+
 # Parallelization
 CRAWLER_WORKERS = 4        # Parallel Playwright browser processes for domain crawling
 CLASSIFIER_WORKERS = 10    # Parallel threads for OpenAI classification calls
