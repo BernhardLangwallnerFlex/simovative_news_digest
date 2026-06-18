@@ -102,6 +102,7 @@ def normalize_article(raw: dict) -> dict:
             "primary_category": None,
             "secondary_tags": [],
             "relevance_score": None,
+            "verwaltung_relevance_score": None,
             "priority_score": None,
             "confidence_score": None,
             "entities": {

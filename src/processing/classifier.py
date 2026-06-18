@@ -27,6 +27,11 @@ You are a structured information extraction system for university market intelli
 You classify German-language news articles according to a fixed taxonomy relevant \
 to higher education institutions in the DACH region (Germany, Austria, Switzerland).
 If the article concerns a university outside the DACH region, classify it as "Irrelevant". If the article only talks about research budgets, classify it as "Research News".
+You score two INDEPENDENT relevance dimensions: "relevance_score" (relevance to the \
+higher-education / university market) and "verwaltung_relevance_score" (relevance to \
+public-administration digitalization in the DACH region — e-government, OZG, \
+Registermodernisierung, municipal/state/federal IT — regardless of any university angle). \
+An article may score high on one and low on the other.
 You must strictly follow the allowed category list and output valid JSON only.
 Do not include any text outside the JSON object."""
 
@@ -43,6 +48,7 @@ Output a JSON object with exactly these fields:
 - "primary_category": exactly one of the allowed categories above
 - "secondary_tags": list of 0-5 short descriptive labels (strings)
 - "relevance_score": float 0.0-1.0 (how relevant to university market intelligence)
+- "verwaltung_relevance_score": float 0.0-1.0 (how relevant to public-administration / e-government digitalization in DACH — OZG, Registermodernisierung, municipal/state/federal IT — independent of any university angle)
 - "priority_score": float 0.0-1.0 (urgency/importance for sales intelligence)
 - "confidence_score": float 0.0-1.0 (your confidence in this classification)
 - "entities": object with keys "universities", "persons", "roles", "vendors", \
@@ -61,6 +67,10 @@ def _validate_llm_output(data: dict) -> bool:
         val = data.get(score_field)
         if not isinstance(val, (int, float)) or not (0.0 <= float(val) <= 1.0):
             return False
+    # verwaltung_relevance_score is optional (older records lack it); if present it must be valid.
+    vr = data.get("verwaltung_relevance_score")
+    if vr is not None and (not isinstance(vr, (int, float)) or not (0.0 <= float(vr) <= 1.0)):
+        return False
     if not isinstance(data.get("entities"), dict):
         return False
     return True
@@ -100,6 +110,7 @@ def classify_article(article: dict, client: OpenAI, model: str) -> dict:
                     "primary_category": data["primary_category"],
                     "secondary_tags": data.get("secondary_tags", [])[:5],
                     "relevance_score": float(data["relevance_score"]),
+                    "verwaltung_relevance_score": float(data.get("verwaltung_relevance_score") or 0.0),
                     "priority_score": float(data["priority_score"]),
                     "confidence_score": float(data["confidence_score"]),
                     "entities": data.get("entities", {}),
