@@ -1,6 +1,36 @@
 {
   "description": "URL-Patterns für Nachrichtenartikel bayerischer Hochschulen. {slug} = URL-freundlicher Titel, {YYYY} = Jahr, {MM} = Monat, {DD} = Tag, {id} = numerische ID",
   "patterns": {
+    "https://www.dstgb.de/publikationen/pressemitteilungen/": {
+      "source": "DStGB Pressemitteilungen",
+      "article_url_pattern": "https://www.dstgb.de/publikationen/pressemitteilungen/{slug}",
+      "example": "https://www.dstgb.de/publikationen/pressemitteilungen/kommunale-handlungsfaehigkeit-garantieren-und-sichern/",
+      "cms": "custom"
+    },
+    "https://www.dstgb.de/aktuelles/": {
+      "source": "DStGB Aktuelles",
+      "article_url_pattern": "https://www.dstgb.de/aktuelles/{YYYY-sem}/{slug}/",
+      "example": "https://www.dstgb.de/aktuelles/2025-26/tag-der-bundeswehr-26/",
+      "cms": "custom"
+    },
+    "https://www.kommune21.de/": {
+      "source": "Kommune21",
+      "article_url_pattern": "https://www.kommune21.de/k21-meldungen/{slug}",
+      "exclude_url_patterns": [
+        "https://www.kommune21.de/k21-meldungen/feed"
+      ],
+      "example": "https://www.kommune21.de/k21-meldungen/arbeitshilfen-zu-ki-in-der-verwaltung/",
+      "cms": "K21Media"
+    },
+    "https://www.move-online.de/": {
+      "source": "move - moderne verwaltung",
+      "article_url_pattern": "https://www.move-online.de/k21-meldungen/{slug}",
+      "exclude_url_patterns": [
+        "https://www.move-online.de/k21-meldungen/feed"
+      ],
+      "example": "https://www.move-online.de/k21-meldungen/ki-in-der-justiz/",
+      "cms": "K21Media"
+    },
     "https://www.oth-aw.de/hochschule/aktuelles/news/": {
       "hochschule": "OTH Amberg-Weiden",
       "article_url_pattern": "https://www.oth-aw.de/hochschule/aktuelles/news/{slug}/",

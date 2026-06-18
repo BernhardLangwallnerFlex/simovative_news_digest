@@ -10,17 +10,21 @@ MANDATORY_DOMAINS = [
     "https://www.uni-kanzler.de/aktuelles/news", 
     "https://hochschulforumdigitalisierung.de/news/", 
     "https://hochschulforumdigitalisierung.de/blog/",
-    "https://www.stifterverband.org/pressemitteilungen", 
-    "https://www.stifterverband.org/insights", 
-    "https://www.hrk.de/presse/pressemitteilungen/", 
-    "https://www.che.de/aktuelles/", 
-    "https://www.bertelsmann-stiftung.de/en/home/news", 
-    "https://negz.org/neuigkeiten-aus-dem-negz/",
-    "https://digitalverbund.bayern/aktuelles/", 
-    "https://private-hochschulen.net/aktuelles", 
-    "https://www.stmwk.bayern.de/pressemitteilungen.html", 
+    "https://www.stifterverband.org/pressemitteilungen",
+    "https://www.stifterverband.org/insights",
+    "https://www.hrk.de/presse/pressemitteilungen/",
+    "https://www.che.de/aktuelles/",
+    "https://www.bertelsmann-stiftung.de/en/home/news",
+    "https://digitalverbund.bayern/aktuelles/",
+    "https://private-hochschulen.net/aktuelles",
+    "https://www.stmwk.bayern.de/pressemitteilungen.html",
     "https://www.it-planungsrat.de/aktuelles",
     "https://www.mmkh.de/aktuelles/neuigkeiten",
+    # --- Verwaltungsdigitalisierung (HTML crawl) ---
+    "https://www.dstgb.de/publikationen/pressemitteilungen/",
+    "https://www.dstgb.de/aktuelles/",
+    "https://www.kommune21.de/",
+    "https://www.move-online.de/",
     ]
 
 UNIVERSITY_NEWS_URLS = [
@@ -122,6 +126,14 @@ RSS_FEEDS = [
     "https://blog.uni-regensburg.de/blog.recent.xml",
     "https://www.uni-bamberg.de/presse/pm/rss.xml",
     "https://www.fau.eu/news/feed/",
+    # --- Verwaltungsdigitalisierung (public administration) ---
+    "https://www.behoerden-spiegel.de/feed/",
+    "https://www.egovernment.de/rss/news.xml",
+    "https://www.vdz.org/rss.xml",
+    "https://egovernment-podcast.com/feed/mp3/",
+    "https://feeds.captivate.fm/unbuerokratisch/",
+    "https://verwaltungdigitalinsights-vitako-podcast.podigee.io/feed/mp3",
+    "https://negz.org/feed/",
 ]
 
 ARTICLES_PER_DOMAIN = 20
