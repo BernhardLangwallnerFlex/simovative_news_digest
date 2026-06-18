@@ -47,6 +47,12 @@ def test_irrelevant_category_excluded_from_verwaltung():
     assert filter_for_verwaltung([a], exclude=[]) == []
 
 
+def test_research_news_category_excluded_from_verwaltung():
+    # Research News has no renderable category section → must be excluded.
+    a = make_article("v3b", category="Research News", verwaltung=0.9)
+    assert filter_for_verwaltung([a], exclude=[]) == []
+
+
 def test_unprocessed_article_excluded_from_verwaltung():
     a = make_article("v4", processed=False, verwaltung=0.9)
     assert filter_for_verwaltung([a], exclude=[]) == []

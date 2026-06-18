@@ -76,7 +76,8 @@ def filter_for_verwaltung(articles: list[dict], exclude: list[dict]) -> list[dic
 
     Include if NOT already in the Hochschule digest (`exclude`) AND
     verwaltung_relevance_score >= threshold AND confidence_score >= 0.6 AND
-    primary_category != "Irrelevant". Intentionally NOT Hochschule-filtered.
+    primary_category not in {Research News, Irrelevant} (those have no renderable
+    category section). Intentionally NOT Hochschule-filtered on relevance.
     """
     from config import VERWALTUNG_RELEVANCE_THRESHOLD
 
@@ -88,7 +89,7 @@ def filter_for_verwaltung(articles: list[dict], exclude: list[dict]) -> list[dic
             continue
         if a["article_id"] in excluded_ids:
             continue
-        if analysis.get("primary_category", "") == "Irrelevant":
+        if analysis.get("primary_category", "") in EXCLUDED_CATEGORIES:
             continue
         if (analysis.get("verwaltung_relevance_score") or 0) < VERWALTUNG_RELEVANCE_THRESHOLD:
             continue

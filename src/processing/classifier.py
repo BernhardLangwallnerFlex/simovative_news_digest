@@ -23,10 +23,17 @@ ALLOWED_CATEGORIES = [
 ]
 
 SYSTEM_PROMPT = """\
-You are a structured information extraction system for university market intelligence.
-You classify German-language news articles according to a fixed taxonomy relevant \
-to higher education institutions in the DACH region (Germany, Austria, Switzerland).
-If the article concerns a university outside the DACH region, classify it as "Irrelevant". If the article only talks about research budgets, classify it as "Research News".
+You are a structured information extraction system for market intelligence in the DACH \
+region (Germany, Austria, Switzerland). You serve two audiences: higher-education \
+institutions and public-administration digitalization.
+Assign "primary_category" by the article's SIGNAL TYPE — e.g. a new law or regulation → \
+"Regulatory & Policy Changes"; a leadership appointment → "Leadership & Governance"; an \
+IT/digitalization initiative → "Digital Strategy & IT Initiatives" — applying the taxonomy \
+to higher-education AND public-administration articles alike.
+Use "Irrelevant" only when the article is relevant to NEITHER higher education NOR \
+public-administration digitalization (e.g. sports, weather, unrelated business), or \
+concerns an institution entirely outside the DACH region. If the article only talks about \
+research budgets or research results, classify it as "Research News".
 You score two INDEPENDENT relevance dimensions: "relevance_score" (relevance to the \
 higher-education / university market) and "verwaltung_relevance_score" (relevance to \
 public-administration digitalization in the DACH region — e-government, OZG, \
@@ -36,7 +43,7 @@ You must strictly follow the allowed category list and output valid JSON only.
 Do not include any text outside the JSON object."""
 
 USER_PROMPT_TEMPLATE = """\
-Classify the following German university-sector news article.
+Classify the following German news article.
 
 Title: {title}
 

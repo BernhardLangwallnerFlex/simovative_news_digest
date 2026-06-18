@@ -73,6 +73,7 @@ File: `src/processing/classifier.py`.
 - Extend `USER_PROMPT_TEMPLATE` to request this field; extend `SYSTEM_PROMPT` to explain the two relevance dimensions are scored independently (an article can be high on one and low on the other).
 - Extend `_validate_llm_output` to validate `verwaltung_relevance_score` as a 0–1 float. **Backward compatibility:** treat a missing field as `0.0` rather than failing validation, so re-runs over historical `articles_classified.json` don't break.
 - Reuse existing fields (`primary_category`, `signal_summary`, `confidence_score`) for both sections. The university-specific `sales_relevance` field is simply not rendered in the Verwaltung section.
+- **`primary_category` must be assigned by signal type for BOTH audiences.** The original Hochschule-framed prompt binned pure public-administration articles as "Irrelevant" (verified live: an OZG/Registermodernisierung article scored verwaltung=0.98 but category="Irrelevant"), which the routing/render then dropped. The system prompt is rewritten so the taxonomy applies to higher-education AND public-administration articles alike, and "Irrelevant" means relevant to *neither* dimension. Both `filter_for_digest` and `filter_for_verwaltung` exclude `{Research News, Irrelevant}` — neither has a renderable category section.
 - Computed uniformly for **all** articles (one extra output field; negligible token cost). No source tagging needed for routing.
 
 ---
