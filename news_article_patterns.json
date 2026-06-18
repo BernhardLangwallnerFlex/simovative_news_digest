@@ -16,18 +16,12 @@
     "https://www.kommune21.de/": {
       "source": "Kommune21",
       "article_url_pattern": "https://www.kommune21.de/k21-meldungen/{slug}",
-      "exclude_url_patterns": [
-        "https://www.kommune21.de/k21-meldungen/feed"
-      ],
       "example": "https://www.kommune21.de/k21-meldungen/arbeitshilfen-zu-ki-in-der-verwaltung/",
       "cms": "K21Media"
     },
     "https://www.move-online.de/": {
       "source": "move - moderne verwaltung",
       "article_url_pattern": "https://www.move-online.de/k21-meldungen/{slug}",
-      "exclude_url_patterns": [
-        "https://www.move-online.de/k21-meldungen/feed"
-      ],
       "example": "https://www.move-online.de/k21-meldungen/ki-in-der-justiz/",
       "cms": "K21Media"
     },
