@@ -14,7 +14,7 @@ from src.crawlers.university_domain_crawler import crawl_all_university_domains
 from src.delivery.email_sender import send_digest_email
 from src.crawlers.newsapi_crawler import fetch_newsapi
 from src.crawlers.rss_crawler import parse_rss_feeds
-from src.digest.html_generator import filter_for_digest, generate_html_digest
+from src.digest.html_generator import filter_for_digest, filter_for_verwaltung, generate_html_digest
 from src.processing.classifier import classify_articles
 from src.processing.deduplicator import deduplicate
 from src.processing.near_dedup import deduplicate_near_duplicates
@@ -58,6 +58,7 @@ def main():
         "history_skipped": 0,
         "classified": 0,
         "digest_included": 0,
+        "verwaltung_included": 0,
         "errors": [],
     }
 
@@ -153,23 +154,36 @@ def main():
     history = update_history(history, new_articles, run_date)
     save_history(history, AZURE_HISTORY_CONTAINER, AZURE_HISTORY_BLOB)
 
-    # ── Step 6+7: Digest Generation ──────────────────────────────────
+    # ── Step 6+7: Digest Generation (two sections) ──────────────────
     logger.info("Step 6+7: Generating digest")
     digest_articles = filter_for_digest(classified)
+    verwaltung_articles = filter_for_verwaltung(classified, exclude=digest_articles)
+    logger.info(
+        "Routing: %d Hochschule articles, %d Verwaltung articles",
+        len(digest_articles), len(verwaltung_articles),
+    )
 
-    # -- Step 6.5: Near-duplicate detection --
-    logger.info("Step 6.5: Near-duplicate detection (%d articles)", len(digest_articles))
+    # -- Step 6.5: Near-duplicate detection (per section) --
+    logger.info("Step 6.5: Near-duplicate detection (Hochschule=%d, Verwaltung=%d)",
+                len(digest_articles), len(verwaltung_articles))
     digest_articles = deduplicate_near_duplicates(digest_articles)
+    verwaltung_articles = deduplicate_near_duplicates(verwaltung_articles)
 
     stats["digest_included"] = len(digest_articles)
+    stats["verwaltung_included"] = len(verwaltung_articles)
 
     # ── Source Transparency Report ──────────────────────────────────
     generate_source_transparency_report(normalized, new_articles, digest_articles, run_date)
 
-    html = generate_html_digest(digest_articles, run_date=run_date)
+    html = generate_html_digest(
+        digest_articles, run_date=run_date, verwaltung_articles=verwaltung_articles
+    )
     out_path = digest_path(run_date)
     out_path.write_text(html, encoding="utf-8")
-    logger.info("Digest written to %s (%d articles)", out_path, len(digest_articles))
+    logger.info(
+        "Digest written to %s (Hochschule=%d, Verwaltung=%d)",
+        out_path, len(digest_articles), len(verwaltung_articles),
+    )
 
     # ── Step 8: Send Digest Email ─────────────────────────────────────
     if EMAIL_RECIPIENTS:
