@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 readability-lxml>=0.8.1
 sentence-transformers>=2.2.0
 azure-storage-blob>=12.19.0
+pytest>=8.0.0

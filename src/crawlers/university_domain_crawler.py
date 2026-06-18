@@ -200,6 +200,38 @@ def _find_matching_links(
     return matches
 
 
+def _clean_title(title: str | None, netloc: str) -> str | None:
+    """Strip site-name boilerplate some CMSs append to the page <title>.
+
+    Two conservative steps:
+    1. Drop everything from the first ' | ' onward (almost always 'Title | Site').
+    2. Drop a trailing ' - '/' – '/' — ' segment *only* when that segment names
+       the site (contains the domain's registrable name, e.g. 'kommune21',
+       'move-online'). This keeps legitimate titles that merely contain a dash.
+
+    Returns the cleaned title, or the original input if cleaning would empty it.
+    """
+    if not title:
+        return title
+
+    cleaned = title.strip()
+    if " | " in cleaned:
+        head = cleaned.split(" | ", 1)[0].strip()
+        if head:
+            cleaned = head
+
+    # 'www.move-online.de' -> 'move-online', 'www.kommune21.de' -> 'kommune21'
+    token = netloc.lower().removeprefix("www.").split(".")[0]
+    if token:
+        for sep in (" - ", " – ", " — "):
+            head, found, tail = cleaned.rpartition(sep)
+            if found and head and token in tail.lower().replace(" ", ""):
+                cleaned = head.strip()
+                break
+
+    return cleaned or title
+
+
 def crawl_university_domain(
     domain_url: str,
     max_articles: int = 20,
@@ -348,7 +380,7 @@ def crawl_university_domain(
                     continue
 
                 raw_text = _extract_article_text(article_html)
-                title = page.title() or item["title"]
+                title = _clean_title(page.title() or item["title"], parsed_base.netloc)
 
                 articles.append({
                     "title": title,
