@@ -1,4 +1,7 @@
-playwright>=1.42.0
+# Pin to the Playwright Docker base image version (mcr.microsoft.com/playwright/python:v1.58.0-noble).
+# An unpinned version lets a rebuild pull a newer Playwright whose bundled chromium
+# build is absent from the base image -> "Executable doesn't exist" at launch.
+playwright==1.58.0
 beautifulsoup4>=4.12.0
 lxml>=5.0.0
 feedparser>=6.0.10
